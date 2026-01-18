@@ -1,0 +1,380 @@
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.btn-reset {
+  padding: 8px 16px;
+  background-color: #666;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-reset:hover {
+  background-color: #555;
+}
+
+/* Main essay grid container */
+.essay-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Header row */
+.header-row {
+  display: grid;
+  grid-template-columns: 100px 120px 200px 1fr 1fr;
+  background-color: #4a4a4a;
+  color: white;
+  font-weight: bold;
+}
+
+.header-cell {
+  padding: 12px 8px;
+  border-right: 1px solid #666;
+  text-align: center;
+}
+
+.header-cell:last-child {
+  border-right: none;
+}
+
+/* Section containers */
+.section {
+  border-bottom: 2px solid #999;
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+/* Section grid - 5 columns matching header */
+.section-grid {
+  display: grid;
+  grid-template-columns: 100px 120px 200px 1fr 1fr;
+}
+
+/* Section label (first column, spans all rows) */
+.section-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-align: center;
+  border-right: 1px solid #ccc;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+}
+
+/* Component label (second column) */
+.component-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ddd;
+}
+
+.claim-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-add,
+.btn-remove {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-add {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-add:hover {
+  background-color: #45a049;
+}
+
+.btn-remove {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn-remove:hover {
+  background-color: #da190b;
+}
+
+/* Purpose cell (third column) */
+.purpose-cell {
+  padding: 8px;
+  font-size: 0.8rem;
+  color: #555;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ddd;
+}
+
+.purpose-cell em {
+  color: #333;
+  font-style: italic;
+}
+
+.restatement-purpose {
+  font-style: italic;
+  font-size: 0.75rem;
+}
+
+/* Outline cell (fourth column) - editable */
+.outline-cell {
+  padding: 8px;
+  font-size: 0.85rem;
+  border: none;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ddd;
+  background-color: rgba(255, 255, 255, 0.7);
+  resize: none;
+  min-height: 60px;
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.outline-cell:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: -2px;
+  background-color: white;
+}
+
+.outline-cell.purpose-display {
+  color: #999;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Outline cell wrapper with help icon */
+.outline-cell-wrapper {
+  position: relative;
+  display: flex;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ddd;
+}
+
+.outline-cell-wrapper .outline-cell {
+  border-right: none;
+  border-bottom: none;
+  flex: 1;
+}
+
+.help-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  background-color: #666;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.help-icon:hover {
+  opacity: 1;
+}
+
+/* Paragraph cell (fifth column) - editable, spans multiple rows */
+.paragraph-cell {
+  padding: 12px;
+  font-size: 0.9rem;
+  border: none;
+  border-bottom: 1px solid #ddd;
+  background-color: rgba(255, 255, 200, 0.3);
+  resize: none;
+  min-height: 150px;
+  overflow: hidden;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.paragraph-cell:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: -2px;
+  background-color: rgba(255, 255, 200, 0.6);
+}
+
+/* Color coding for sections */
+.section-intro {
+  background-color: #c8e6c9; /* Green */
+}
+
+.section-intro .section-label {
+  background-color: #a5d6a7;
+}
+
+.section-body-0 {
+  background-color: #bbdefb; /* Blue */
+}
+
+.section-body-0 .section-label {
+  background-color: #90caf9;
+}
+
+.section-body-1 {
+  background-color: #e1bee7; /* Purple */
+}
+
+.section-body-1 .section-label {
+  background-color: #ce93d8;
+}
+
+.section-body-2 {
+  background-color: #b2dfdb; /* Teal */
+}
+
+.section-body-2 .section-label {
+  background-color: #80cbc4;
+}
+
+.section-conclusion {
+  background-color: #ffe0b2; /* Orange */
+}
+
+.section-conclusion .section-label {
+  background-color: #ffcc80;
+}
+
+/* Proof Block grouping */
+.proof-block {
+  border-left: 4px solid #666;
+}
+
+.proof-block-0 {
+  border-left-color: #1976d2;
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+.proof-block-1 {
+  border-left-color: #7b1fa2;
+  background-color: rgba(123, 31, 162, 0.08);
+}
+
+.proof-block-first {
+  border-top: 2px solid rgba(0, 0, 0, 0.15);
+  margin-top: 4px;
+}
+
+.proof-block-last {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+  margin-bottom: 4px;
+}
+
+.component-label.proof-block {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.proof-block-label {
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: #1976d2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.proof-block-1 .proof-block-label {
+  color: #7b1fa2;
+}
+
+.sub-label {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.component-label.proof-block .claim-actions {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+}
+
+.component-label.proof-block {
+  position: relative;
+}
+
+.component-label.proof-block-middle,
+.component-label.proof-block-last {
+  padding-left: 12px;
+}
+
+/* Placeholder styling */
+textarea::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .section-grid,
+  .header-row {
+    grid-template-columns: 80px 100px 180px 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .essay-grid {
+    overflow-x: auto;
+  }
+
+  .section-grid,
+  .header-row {
+    min-width: 800px;
+  }
+}
