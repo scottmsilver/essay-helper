@@ -19,8 +19,7 @@ export function ConclusionSection({
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
         {/* Row 1: Restatement */}
         <SectionLabel rowSpan={rowCount}>Conclusion</SectionLabel>
-        <div className="component-label">Restatement</div>
-        <PurposeCell>
+        <PurposeCell label="Restatement">
           <span className="restatement-purpose">{restatementPurpose}</span>
         </PurposeCell>
         <OutlineCell
@@ -36,8 +35,7 @@ export function ConclusionSection({
         />
 
         {/* Row 2: So What */}
-        <div className="component-label">So What</div>
-        <PurposeCell>
+        <PurposeCell label="So What">
           Future implications of <em>{thesis || '[thesis]'}</em> being true
         </PurposeCell>
         <OutlineCell

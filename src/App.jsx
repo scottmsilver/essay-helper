@@ -1,43 +1,86 @@
+import { useEffect } from 'react';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { useEssay } from './hooks/useEssay';
+import { useAuth } from './hooks/useAuth';
 import { IntroSection, BodySection, ConclusionSection } from './components';
+import { Header } from './components/Header';
+import { HomePage } from './components/HomePage';
+import { MigrationPrompt } from './components/MigrationPrompt';
 import './App.css';
 
-function App() {
-  const {
-    essay,
-    updateIntro,
-    addClaim,
-    updateClaim,
-    removeClaim,
-    updateBodyParagraph,
-    addProofBlock,
-    updateProofBlock,
-    removeProofBlock,
-    updateConclusion,
-    getClaimById,
-    resetEssay,
-  } = useEssay();
+function getFullEssayText(essay) {
+  const paragraphs = [];
+
+  if (essay.intro.paragraph?.trim()) {
+    paragraphs.push(essay.intro.paragraph.trim());
+  }
+
+  for (const body of essay.bodyParagraphs) {
+    if (body.paragraph?.trim()) {
+      paragraphs.push(body.paragraph.trim());
+    }
+  }
+
+  if (essay.conclusion.paragraph?.trim()) {
+    paragraphs.push(essay.conclusion.paragraph.trim());
+  }
+
+  return paragraphs.join('\n\n');
+}
+
+function EssayEditor({
+  essay,
+  currentEssayId,
+  lastSaved,
+  currentTitle,
+  updateIntro,
+  addClaim,
+  updateClaim,
+  removeClaim,
+  updateBodyParagraph,
+  addProofBlock,
+  updateProofBlock,
+  removeProofBlock,
+  updateConclusion,
+  getClaimById,
+  renameEssay,
+  selectEssay,
+}) {
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  useEffect(() => {
+    if (id && id !== currentEssayId) {
+      selectEssay(id);
+    }
+  }, [id, currentEssayId, selectEssay]);
+
+  const handleRenameEssay = (newTitle) => {
+    if (currentEssayId) {
+      renameEssay(currentEssayId, newTitle);
+    }
+  };
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Essay Helper</h1>
-        <button className="btn-reset" onClick={resetEssay}>
-          Start New Essay
-        </button>
-      </header>
+    <>
+      <Header
+        essay={essay}
+        getFullEssayText={getFullEssayText}
+        currentTitle={currentTitle}
+        lastSaved={lastSaved}
+        onRenameEssay={handleRenameEssay}
+        onGoHome={() => navigate('/')}
+        showEditor={true}
+      />
 
       <main className="essay-grid">
-        {/* Column headers */}
         <div className="header-row">
-          <div className="header-cell">Section</div>
-          <div className="header-cell">Component</div>
+          <div className="header-cell"></div>
           <div className="header-cell">Purpose</div>
           <div className="header-cell">Outline</div>
           <div className="header-cell">Paragraph</div>
         </div>
 
-        {/* Introduction Section */}
         <IntroSection
           intro={essay.intro}
           updateIntro={updateIntro}
@@ -46,7 +89,6 @@ function App() {
           removeClaim={removeClaim}
         />
 
-        {/* Body Sections - one per claim */}
         {essay.bodyParagraphs.map((bodyParagraph, index) => (
           <BodySection
             key={bodyParagraph.id}
@@ -60,7 +102,6 @@ function App() {
           />
         ))}
 
-        {/* Conclusion Section */}
         <ConclusionSection
           conclusion={essay.conclusion}
           thesis={essay.intro.thesis}
@@ -68,6 +109,130 @@ function App() {
           updateConclusion={updateConclusion}
         />
       </main>
+    </>
+  );
+}
+
+function HomePageWrapper({ essays, onNewEssay, deleteEssay, isLoggedIn }) {
+  const navigate = useNavigate();
+
+  const handleSelectEssay = (essayId) => {
+    navigate(`/essay/${essayId}`);
+  };
+
+  const handleNewEssay = () => {
+    const newId = onNewEssay();
+    if (newId) {
+      navigate(`/essay/${newId}`);
+    }
+  };
+
+  return (
+    <>
+      <Header
+        essay={null}
+        getFullEssayText={() => ''}
+        currentTitle=""
+        lastSaved={null}
+        onRenameEssay={() => {}}
+        onGoHome={() => {}}
+        showEditor={false}
+      />
+      <HomePage
+        essays={essays}
+        onSelectEssay={handleSelectEssay}
+        onNewEssay={handleNewEssay}
+        onDeleteEssay={deleteEssay}
+        isLoggedIn={isLoggedIn}
+      />
+    </>
+  );
+}
+
+function App() {
+  const { user } = useAuth();
+
+  const {
+    essay,
+    essays,
+    currentEssayId,
+    loading,
+    showMigrationPrompt,
+    updateIntro,
+    addClaim,
+    updateClaim,
+    removeClaim,
+    updateBodyParagraph,
+    addProofBlock,
+    updateProofBlock,
+    removeProofBlock,
+    updateConclusion,
+    getClaimById,
+    selectEssay,
+    createNewEssay,
+    deleteEssay,
+    renameEssay,
+    handleMigrate,
+    handleSkipMigration,
+  } = useEssay();
+
+  const currentEssay = essays?.find((e) => e.id === currentEssayId);
+  const currentTitle = currentEssay?.title || 'Untitled';
+  const lastSaved = currentEssay?.updatedAt;
+
+  if (loading) {
+    return (
+      <div className="app">
+        <div className="loading-state">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      {showMigrationPrompt && (
+        <MigrationPrompt
+          onMigrate={handleMigrate}
+          onSkip={handleSkipMigration}
+        />
+      )}
+
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <HomePageWrapper
+              essays={essays}
+              onNewEssay={createNewEssay}
+              deleteEssay={deleteEssay}
+              isLoggedIn={!!user}
+            />
+          }
+        />
+        <Route
+          path="/essay/:id"
+          element={
+            <EssayEditor
+              essay={essay}
+              currentEssayId={currentEssayId}
+              lastSaved={lastSaved}
+              currentTitle={currentTitle}
+              updateIntro={updateIntro}
+              addClaim={addClaim}
+              updateClaim={updateClaim}
+              removeClaim={removeClaim}
+              updateBodyParagraph={updateBodyParagraph}
+              addProofBlock={addProofBlock}
+              updateProofBlock={updateProofBlock}
+              removeProofBlock={removeProofBlock}
+              updateConclusion={updateConclusion}
+              getClaimById={getClaimById}
+              renameEssay={renameEssay}
+              selectEssay={selectEssay}
+            />
+          }
+        />
+      </Routes>
     </div>
   );
 }

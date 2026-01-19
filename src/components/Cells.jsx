@@ -1,4 +1,5 @@
-import { useRef, useEffect, useLayoutEffect } from 'react';
+import { useRef, useLayoutEffect } from 'react';
+import { CopyButton } from './CopyButton';
 
 function useAutoResize(value, placeholder) {
   const ref = useRef(null);
@@ -6,7 +7,8 @@ function useAutoResize(value, placeholder) {
   useLayoutEffect(() => {
     const textarea = ref.current;
     if (textarea) {
-      // Reset height to auto to get accurate scrollHeight
+      // Reset to measure content
+      textarea.style.minHeight = 'auto';
       textarea.style.height = 'auto';
 
       // If empty, measure placeholder height by temporarily setting value
@@ -18,7 +20,9 @@ function useAutoResize(value, placeholder) {
         textarea.value = originalValue;
       }
 
-      textarea.style.height = height + 'px';
+      // Use minHeight so it can stretch to fill container
+      textarea.style.minHeight = height + 'px';
+      textarea.style.height = '';
     }
   }, [value, placeholder]);
 
@@ -36,8 +40,14 @@ export function SectionLabel({ children, rowSpan }) {
   );
 }
 
-export function PurposeCell({ children, className = '' }) {
-  return <div className={`purpose-cell ${className}`}>{children}</div>;
+export function PurposeCell({ label, children, className = '', actions }) {
+  return (
+    <div className={`purpose-cell ${className}`}>
+      {actions && <div className="purpose-actions">{actions}</div>}
+      {label && <span className="purpose-label">{label}</span>}
+      {children}
+    </div>
+  );
 }
 
 export function OutlineCell({ value, onChange, placeholder, className = '' }) {
@@ -62,15 +72,18 @@ export function OutlineCell({ value, onChange, placeholder, className = '' }) {
 
 export function ParagraphCell({ value, onChange, placeholder, rowSpan }) {
   const textareaRef = useAutoResize(value, placeholder);
+  const hasContent = value && value.trim().length > 0;
 
   return (
-    <textarea
-      ref={textareaRef}
-      className="paragraph-cell"
-      style={{ gridRow: `span ${rowSpan}` }}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-    />
+    <div className="paragraph-cell-wrapper" style={{ gridRow: `span ${rowSpan}` }}>
+      <textarea
+        ref={textareaRef}
+        className="paragraph-cell"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+      {hasContent && <CopyButton text={value} />}
+    </div>
   );
 }

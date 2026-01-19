@@ -1,4 +1,5 @@
 import { OutlineCell, ParagraphCell, PurposeCell, SectionLabel } from './Cells';
+import { AddRemoveActions } from './AddRemoveActions';
 
 export function IntroSection({
   intro,
@@ -14,8 +15,7 @@ export function IntroSection({
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
         {/* Row 1: Hook */}
         <SectionLabel rowSpan={rowCount}>Intro</SectionLabel>
-        <div className="component-label">Hook</div>
-        <PurposeCell>Grab the Reader</PurposeCell>
+        <PurposeCell label="Hook">Grab the reader</PurposeCell>
         <OutlineCell
           value={intro.hook}
           onChange={(value) => updateIntro('hook', value)}
@@ -29,8 +29,7 @@ export function IntroSection({
         />
 
         {/* Row 2: Background */}
-        <div className="component-label">Background</div>
-        <PurposeCell>Provide context and background</PurposeCell>
+        <PurposeCell label="Background">Provide context and background</PurposeCell>
         <OutlineCell
           value={intro.background}
           onChange={(value) => updateIntro('background', value)}
@@ -38,8 +37,7 @@ export function IntroSection({
         />
 
         {/* Row 3: Thesis */}
-        <div className="component-label">Thesis</div>
-        <PurposeCell>The new idea that is true</PurposeCell>
+        <PurposeCell label="Thesis">The new idea that is true</PurposeCell>
         <OutlineCell
           value={intro.thesis}
           onChange={(value) => updateIntro('thesis', value)}
@@ -66,32 +64,20 @@ export function IntroSection({
 }
 
 function ClaimRow({ claim, index, thesis, isOnly, updateClaim, removeClaim, isLast, addClaim }) {
+  const actions = (
+    <AddRemoveActions
+      canRemove={!isOnly}
+      canAdd={isLast}
+      onRemove={() => removeClaim(claim.id)}
+      onAdd={addClaim}
+      removeTitle="Remove claim"
+      addTitle="Add claim"
+    />
+  );
+
   return (
     <>
-      <div className="component-label">
-        Claim {index + 1}
-        <div className="claim-actions">
-          {!isOnly && (
-            <button
-              className="btn-remove"
-              onClick={() => removeClaim(claim.id)}
-              title="Remove claim"
-            >
-              -
-            </button>
-          )}
-          {isLast && (
-            <button
-              className="btn-add"
-              onClick={addClaim}
-              title="Add claim"
-            >
-              +
-            </button>
-          )}
-        </div>
-      </div>
-      <PurposeCell>
+      <PurposeCell label={`Claim ${index + 1}`} actions={actions}>
         Because... (reason {index + 1} why <em>{thesis || '[thesis]'}</em> is true)
       </PurposeCell>
       <OutlineCell
