@@ -96,6 +96,7 @@ body {
   background-color: #4a4a4a;
   color: white;
   font-weight: bold;
+  transition: grid-template-columns 0.3s ease;
 }
 
 .header-cell {
@@ -106,6 +107,32 @@ body {
 
 .header-cell:last-child {
   border-right: none;
+}
+
+/* Paragraph column header - clickable toggle */
+.header-cell-paragraph {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.header-cell-paragraph:hover {
+  background-color: #555;
+}
+
+.paragraph-toggle-icon {
+  font-size: 0.7rem;
+  transition: transform 0.3s ease;
+}
+
+.header-text-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
 }
 
 /* Section containers */
@@ -122,6 +149,33 @@ body {
   display: grid;
   grid-template-columns: 40px 200px 1fr 1fr;
   align-items: stretch;
+  transition: grid-template-columns 0.3s ease;
+}
+
+/* Collapsed paragraph column state */
+.paragraph-collapsed .header-row,
+.paragraph-collapsed .section-grid {
+  grid-template-columns: 40px 200px 1fr 50px;
+}
+
+.paragraph-collapsed .paragraph-cell-wrapper {
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.paragraph-collapsed .paragraph-cell-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.paragraph-collapsed .paragraph-cell {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.essay-grid:not(.paragraph-collapsed) .paragraph-cell {
+  opacity: 1;
+  transition: opacity 0.2s ease 0.1s;
 }
 
 
@@ -494,6 +548,11 @@ textarea::placeholder {
   .section-grid,
   .header-row {
     grid-template-columns: 36px 180px 1fr 1fr;
+  }
+
+  .paragraph-collapsed .header-row,
+  .paragraph-collapsed .section-grid {
+    grid-template-columns: 36px 180px 1fr 50px;
   }
 }
 

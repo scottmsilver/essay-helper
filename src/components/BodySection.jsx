@@ -9,6 +9,8 @@ export function BodySection({
   addProofBlock,
   updateProofBlock,
   removeProofBlock,
+  paragraphCollapsed,
+  onExpandParagraph,
 }) {
   const rowCount = 2 + bodyParagraph.proofBlocks.length * 4;
   const claimText = claim?.text || `[Claim ${bodyIndex + 1}]`;
@@ -30,6 +32,8 @@ export function BodySection({
           value={bodyParagraph.paragraph}
           onChange={(value) => updateBodyParagraph(bodyParagraph.id, 'paragraph', value)}
           placeholder={`Write your body paragraph proving "${claimText}", weaving together your evidence, analysis, and connection...`}
+          collapsed={paragraphCollapsed}
+          onExpand={onExpandParagraph}
         />
 
         {bodyParagraph.proofBlocks.map((proofBlock, pbIndex) => (

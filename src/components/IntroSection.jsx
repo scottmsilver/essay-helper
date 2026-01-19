@@ -7,6 +7,8 @@ export function IntroSection({
   addClaim,
   updateClaim,
   removeClaim,
+  paragraphCollapsed,
+  onExpandParagraph,
 }) {
   const rowCount = 3 + intro.claims.length; // hook, background, thesis, + claims
 
@@ -26,6 +28,8 @@ export function IntroSection({
           value={intro.paragraph}
           onChange={(value) => updateIntro('paragraph', value)}
           placeholder="Write your introduction paragraph here, weaving together your hook, background, thesis, and claims..."
+          collapsed={paragraphCollapsed}
+          onExpand={onExpandParagraph}
         />
 
         {/* Row 2: Background */}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { useEssay } from './hooks/useEssay';
 import { useAuth } from './hooks/useAuth';
@@ -48,6 +48,7 @@ function EssayEditor({
 }) {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [paragraphCollapsed, setParagraphCollapsed] = useState(true);
 
   useEffect(() => {
     if (id && id !== currentEssayId) {
@@ -59,6 +60,10 @@ function EssayEditor({
     if (currentEssayId) {
       renameEssay(currentEssayId, newTitle);
     }
+  };
+
+  const toggleParagraphColumn = () => {
+    setParagraphCollapsed(!paragraphCollapsed);
   };
 
   return (
@@ -73,12 +78,15 @@ function EssayEditor({
         showEditor={true}
       />
 
-      <main className="essay-grid">
+      <main className={`essay-grid ${paragraphCollapsed ? 'paragraph-collapsed' : ''}`}>
         <div className="header-row">
           <div className="header-cell"></div>
           <div className="header-cell">Purpose</div>
           <div className="header-cell">Outline</div>
-          <div className="header-cell">Paragraph</div>
+          <div className="header-cell header-cell-paragraph" onClick={toggleParagraphColumn}>
+            <span className="paragraph-toggle-icon">{paragraphCollapsed ? '◀' : '▶'}</span>
+            <span className={paragraphCollapsed ? 'header-text-vertical' : ''}>Paragraph</span>
+          </div>
         </div>
 
         <IntroSection
@@ -87,6 +95,8 @@ function EssayEditor({
           addClaim={addClaim}
           updateClaim={updateClaim}
           removeClaim={removeClaim}
+          paragraphCollapsed={paragraphCollapsed}
+          onExpandParagraph={() => setParagraphCollapsed(false)}
         />
 
         {essay.bodyParagraphs.map((bodyParagraph, index) => (
@@ -99,6 +109,8 @@ function EssayEditor({
             addProofBlock={addProofBlock}
             updateProofBlock={updateProofBlock}
             removeProofBlock={removeProofBlock}
+            paragraphCollapsed={paragraphCollapsed}
+            onExpandParagraph={() => setParagraphCollapsed(false)}
           />
         ))}
 
@@ -107,6 +119,8 @@ function EssayEditor({
           thesis={essay.intro.thesis}
           claims={essay.intro.claims}
           updateConclusion={updateConclusion}
+          paragraphCollapsed={paragraphCollapsed}
+          onExpandParagraph={() => setParagraphCollapsed(false)}
         />
       </main>
     </>

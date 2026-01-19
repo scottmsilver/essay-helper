@@ -74,20 +74,31 @@ export function OutlineCell({ value, onChange, placeholder, className = '' }) {
   );
 }
 
-export function ParagraphCell({ value, onChange, placeholder, rowSpan }) {
+export function ParagraphCell({ value, onChange, placeholder, rowSpan, collapsed, onExpand }) {
   const textareaRef = useAutoResize(value, placeholder);
   const hasContent = value && value.trim().length > 0;
 
+  const handleClick = () => {
+    if (collapsed && onExpand) {
+      onExpand();
+    }
+  };
+
   return (
-    <div className="paragraph-cell-wrapper" style={{ gridRow: `span ${rowSpan}` }}>
+    <div
+      className={`paragraph-cell-wrapper ${collapsed ? 'collapsed' : ''}`}
+      style={{ gridRow: `span ${rowSpan}` }}
+      onClick={handleClick}
+    >
       <textarea
         ref={textareaRef}
         className="paragraph-cell"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        disabled={collapsed}
       />
-      {hasContent && <CopyButton text={value} />}
+      {hasContent && !collapsed && <CopyButton text={value} />}
     </div>
   );
 }
