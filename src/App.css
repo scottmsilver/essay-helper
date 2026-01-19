@@ -3,9 +3,14 @@
   box-sizing: border-box;
 }
 
+body {
+  margin: 0;
+  padding: 0;
+}
+
 .app {
   min-height: 100vh;
-  padding: 20px;
+  padding: 0 12px 40px;
   background-color: #f5f5f5;
 }
 
@@ -45,7 +50,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding: 0 10px;
+  padding: 20px 20px 0;
 }
 
 .app-header h1 {
@@ -80,9 +85,8 @@
   flex-direction: column;
   gap: 0;
   background: white;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  overflow: hidden;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
 }
 
 /* Header row */
@@ -192,7 +196,7 @@
   padding: 8px;
   font-size: 0.8rem;
   color: #555;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: transparent;
   border-right: 1px solid #ccc;
   border-bottom: 1px solid #ddd;
   align-self: stretch;
@@ -240,7 +244,8 @@
   border: none;
   border-right: 1px solid #ccc;
   border-bottom: 1px solid #ddd;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
   resize: none;
   min-height: 60px;
   font-family: inherit;
@@ -255,23 +260,22 @@
 
 .outline-cell.purpose-display {
   color: #999;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: transparent;
 }
 
 /* Outline cell wrapper with help icon */
 .outline-cell-wrapper {
   position: relative;
-  display: flex;
+  display: grid;
   border-right: 1px solid #ccc;
   border-bottom: 1px solid #ddd;
-  align-self: stretch;
 }
 
 .outline-cell-wrapper .outline-cell {
   border-right: none;
   border-bottom: none;
-  flex: 1;
-  height: 100%;
+  grid-row: 1;
+  grid-column: 1;
   box-sizing: border-box;
 }
 
@@ -301,29 +305,32 @@
 /* Paragraph cell wrapper */
 .paragraph-cell-wrapper {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 1fr;
 }
 
-/* Paragraph cell (fifth column) - editable, spans multiple rows */
+/* Paragraph cell (fourth column) - editable, spans multiple rows */
 .paragraph-cell {
   padding: 12px;
   font-size: 0.9rem;
   border: none;
   border-bottom: 1px solid #ddd;
-  background-color: rgba(255, 255, 200, 0.3);
+  background-color: rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
   resize: none;
   min-height: 150px;
   overflow: hidden;
   font-family: inherit;
   line-height: 1.5;
-  flex: 1;
+  box-sizing: border-box;
+  grid-row: 1;
+  grid-column: 1;
 }
 
 .paragraph-cell:focus {
   outline: 2px solid #2196f3;
   outline-offset: -2px;
-  background-color: rgba(255, 255, 200, 0.6);
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Copy button styles */
@@ -441,25 +448,39 @@
   color: #333;
 }
 
-/* Progressive depth colors for proof blocks */
-.proof-depth-0 {
-  background-color: rgba(0, 0, 0, 0.03);
+/* Proof block bracket styling - left border with small top/bottom ticks */
+.proof-header[class*="proof-depth-"] {
+  border-left: 3px solid rgba(0, 0, 0, 0.4);
+  position: relative;
 }
 
-.proof-depth-1 {
-  background-color: rgba(0, 0, 0, 0.07);
+.proof-header[class*="proof-depth-"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 20px;
+  height: 3px;
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
-.proof-depth-2 {
-  background-color: rgba(0, 0, 0, 0.11);
+.purpose-cell[class*="proof-depth-"] {
+  border-left: 3px solid rgba(0, 0, 0, 0.4);
 }
 
-.proof-depth-3 {
-  background-color: rgba(0, 0, 0, 0.15);
+/* Bottom bracket tick on connection row */
+.purpose-cell.proof-last-row {
+  position: relative;
 }
 
-.proof-depth-4 {
-  background-color: rgba(0, 0, 0, 0.19);
+.purpose-cell.proof-last-row::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -3px;
+  width: 20px;
+  height: 3px;
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 /* Placeholder styling */

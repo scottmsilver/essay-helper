@@ -109,14 +109,14 @@ function ProofBlockRows({
         className={depthClass}
       />
 
-      <PurposeCell label="Connection" className={depthClass}>
+      <PurposeCell label="Connection" className={`${depthClass} proof-last-row`}>
         Why this proves <em>{claimText}</em>
       </PurposeCell>
       <OutlineCell
         value={proofBlock.connection}
         onChange={(value) => updateProofBlock(bodyId, proofBlock.id, 'connection', value)}
         placeholder={`How does this prove "${claimText}"?`}
-        className={depthClass}
+        className={`${depthClass} proof-last-row`}
       />
     </>
   );
