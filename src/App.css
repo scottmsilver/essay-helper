@@ -185,8 +185,14 @@
   color: #333;
 }
 
+.purpose-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
 .purpose-actions {
-  float: right;
   display: flex;
   gap: 4px;
 }
@@ -377,7 +383,8 @@
   grid-column: span 2;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 8px;
   padding: 6px 12px;
   font-weight: 600;
   font-size: 0.85rem;

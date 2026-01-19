@@ -43,8 +43,12 @@ export function SectionLabel({ children, rowSpan }) {
 export function PurposeCell({ label, children, className = '', actions }) {
   return (
     <div className={`purpose-cell ${className}`}>
-      {actions && <div className="purpose-actions">{actions}</div>}
-      {label && <span className="purpose-label">{label}</span>}
+      {label && (
+        <div className="purpose-header">
+          <span className="purpose-label">{label}</span>
+          {actions && <div className="purpose-actions">{actions}</div>}
+        </div>
+      )}
       {children}
     </div>
   );
