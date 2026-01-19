@@ -51,12 +51,19 @@ export async function getEssay(userId, essayId) {
 export async function saveEssay(userId, essayId, essayData, title = 'Untitled Essay') {
   const docRef = getEssayDocRef(userId, essayId);
 
-  await setDoc(docRef, {
+  // Add timeout to prevent hanging forever on quota exceeded
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Save timeout after 10 seconds')), 10000);
+  });
+
+  const savePromise = setDoc(docRef, {
     title,
     data: essayData,
     updatedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
   }, { merge: true });
+
+  await Promise.race([savePromise, timeoutPromise]);
 
   return essayId;
 }

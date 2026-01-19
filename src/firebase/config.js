@@ -14,5 +14,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Use 'essays-paid' database (no free tier limits) instead of default
+export const db = getFirestore(app, 'essays-paid');
 export default app;

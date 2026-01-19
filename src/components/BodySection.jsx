@@ -18,7 +18,7 @@ export function BodySection({
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
         <SectionLabel rowSpan={rowCount}>Body {bodyIndex + 1}</SectionLabel>
         <PurposeCell label="Purpose">
-          What will you prove in this paragraph?
+          State that you will prove <em>{claimText}</em>
         </PurposeCell>
         <OutlineCell
           value={bodyParagraph.purpose}

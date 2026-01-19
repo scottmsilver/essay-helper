@@ -87,8 +87,24 @@ export function useEssay() {
   const [currentEssayId, setCurrentEssayId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState(null);
   const saveTimeoutRef = useRef(null);
+  const autoSaveIntervalRef = useRef(null);
   const localEssayRef = useRef(null);
+  const lastSavedEssayRef = useRef(null);
+  const essayRef = useRef(essay);
+  const essaysRef = useRef(essays);
+
+  // Keep refs in sync
+  useEffect(() => {
+    essayRef.current = essay;
+  }, [essay]);
+
+  useEffect(() => {
+    essaysRef.current = essays;
+  }, [essays]);
 
   // Load essays when user changes
   useEffect(() => {
@@ -115,14 +131,24 @@ export function useEssay() {
             localEssayRef.current = localData;
             setShowMigrationPrompt(true);
             setEssay(localData);
+            lastSavedEssayRef.current = JSON.stringify(localData);
+            setLastSavedAt(new Date());
           } else if (userEssays.length > 0) {
             const firstEssay = userEssays[0];
             setCurrentEssayId(firstEssay.id);
-            setEssay(firstEssay.data || createInitialEssay());
+            const essayData = firstEssay.data || createInitialEssay();
+            setEssay(essayData);
+            lastSavedEssayRef.current = JSON.stringify(essayData);
+            // Set lastSavedAt from Firestore timestamp
+            const savedTime = firstEssay.updatedAt?.toDate?.() || firstEssay.updatedAt || new Date();
+            setLastSavedAt(savedTime);
           } else {
             const newId = generateId();
             setCurrentEssayId(newId);
-            setEssay(createInitialEssay());
+            const newEssay = createInitialEssay();
+            setEssay(newEssay);
+            lastSavedEssayRef.current = JSON.stringify(newEssay);
+            setLastSavedAt(null); // New essay, not saved yet
           }
         } catch (error) {
           console.error('Failed to load essays:', error);
@@ -131,58 +157,128 @@ export function useEssay() {
       } else {
         setEssays([]);
         setCurrentEssayId(null);
-        setEssay(loadLocalEssay() || createInitialEssay());
+        const localData = loadLocalEssay() || createInitialEssay();
+        setEssay(localData);
+        lastSavedEssayRef.current = JSON.stringify(localData);
       }
 
+      setHasUnsavedChanges(false);
       setLoading(false);
     };
 
     loadData();
   }, [user, authLoading]);
 
-  // Auto-save essay
+  // Helper to mark save complete
+  const markSaveComplete = useCallback((essayJson, timestamp) => {
+    lastSavedEssayRef.current = essayJson;
+    setHasUnsavedChanges(false);
+    setLastSavedAt(timestamp);
+    setSaveError(null);
+  }, []);
+
+  // Save function (shared between debounce and interval)
+  // Uses refs to avoid recreating on every keystroke
+  const performSave = useCallback(async () => {
+    if (loading || authLoading) return;
+
+    const currentEssay = essayRef.current;
+    const currentEssayJson = JSON.stringify(currentEssay);
+
+    if (currentEssayJson === lastSavedEssayRef.current) return;
+
+    const now = new Date();
+
+    if (user && currentEssayId) {
+      try {
+        const existingEssay = essaysRef.current.find((e) => e.id === currentEssayId);
+        const title = existingEssay?.title || 'Untitled Essay';
+        await saveEssayToFirestore(user.uid, currentEssayId, currentEssay, title);
+
+        markSaveComplete(currentEssayJson, now);
+
+        setEssays((prev) => {
+          const exists = prev.some((e) => e.id === currentEssayId);
+          if (exists) {
+            return prev.map((e) =>
+              e.id === currentEssayId
+                ? { ...e, data: currentEssay, updatedAt: now }
+                : e
+            );
+          }
+          return [
+            { id: currentEssayId, title, data: currentEssay, updatedAt: now },
+            ...prev,
+          ];
+        });
+      } catch {
+        // Fall back to localStorage on Firestore failure
+        saveLocalEssay(currentEssay);
+        markSaveComplete(currentEssayJson, now);
+        setSaveError('Could not save to cloud. Your changes are saved locally.');
+      }
+    } else if (!user) {
+      saveLocalEssay(currentEssay);
+      markSaveComplete(currentEssayJson, now);
+    }
+  }, [user, currentEssayId, loading, authLoading, markSaveComplete]);
+
+  // Track unsaved changes
   useEffect(() => {
     if (loading || authLoading) return;
 
+    const currentEssayJson = JSON.stringify(essay);
+    const hasChanges = currentEssayJson !== lastSavedEssayRef.current;
+    setHasUnsavedChanges(hasChanges);
+  }, [essay, loading, authLoading]);
+
+  // Debounced auto-save (2 seconds after typing stops)
+  useEffect(() => {
+    if (loading || authLoading) return;
+
+    // Clear any existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (user && currentEssayId) {
-        try {
-          const existingEssay = essays.find((e) => e.id === currentEssayId);
-          const title = existingEssay?.title || 'Untitled Essay';
-          await saveEssayToFirestore(user.uid, currentEssayId, essay, title);
-
-          setEssays((prev) => {
-            const exists = prev.some((e) => e.id === currentEssayId);
-            if (exists) {
-              return prev.map((e) =>
-                e.id === currentEssayId
-                  ? { ...e, data: essay, updatedAt: new Date() }
-                  : e
-              );
-            }
-            return [
-              { id: currentEssayId, title, data: essay, updatedAt: new Date() },
-              ...prev,
-            ];
-          });
-        } catch (error) {
-          console.error('Failed to save essay to Firestore:', error);
-        }
-      } else if (!user) {
-        saveLocalEssay(essay);
-      }
-    }, 500);
+    // Set new timeout - will only fire if no changes for 2 seconds
+    saveTimeoutRef.current = setTimeout(performSave, 2000);
 
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [essay, user, currentEssayId, loading, authLoading, essays]);
+  }, [essay, loading, authLoading, performSave]);
+
+  // Periodic auto-save every 30 seconds (backup in case debounce misses)
+  useEffect(() => {
+    if (loading || authLoading) return;
+
+    autoSaveIntervalRef.current = setInterval(() => {
+      performSave();
+    }, 30000);
+
+    return () => {
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+      }
+    };
+  }, [performSave, loading, authLoading]);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Handle migration
   const handleMigrate = useCallback(async () => {
@@ -238,18 +334,30 @@ export function useEssay() {
         const essayData = await getEssay(user.uid, essayId);
         if (essayData) {
           setCurrentEssayId(essayId);
-          setEssay(essayData.data || createInitialEssay());
+          const loadedData = essayData.data || createInitialEssay();
+          setEssay(loadedData);
+          lastSavedEssayRef.current = JSON.stringify(loadedData);
+          // Set lastSavedAt from loaded essay's timestamp
+          const savedTime = essayData.updatedAt?.toDate?.() || essayData.updatedAt || new Date();
+          setLastSavedAt(savedTime);
         } else {
           // Essay doesn't exist yet (newly created), just set the ID
           setCurrentEssayId(essayId);
-          setEssay(createInitialEssay());
+          const newEssay = createInitialEssay();
+          setEssay(newEssay);
+          lastSavedEssayRef.current = JSON.stringify(newEssay);
+          setLastSavedAt(null);
         }
       } catch (error) {
         console.error('Failed to load essay:', error);
         // Still set the ID so user can work on a new essay
         setCurrentEssayId(essayId);
-        setEssay(createInitialEssay());
+        const newEssay = createInitialEssay();
+        setEssay(newEssay);
+        lastSavedEssayRef.current = JSON.stringify(newEssay);
+        setLastSavedAt(null);
       }
+      setHasUnsavedChanges(false);
       setLoading(false);
     },
     [user, currentEssayId]
@@ -261,6 +369,8 @@ export function useEssay() {
     const newEssay = createInitialEssay();
     setCurrentEssayId(newId);
     setEssay(newEssay);
+    lastSavedEssayRef.current = JSON.stringify(newEssay);
+    setHasUnsavedChanges(false);
     // Add to essays list immediately
     setEssays((prev) => [
       { id: newId, title: 'Untitled', data: newEssay, updatedAt: new Date() },
@@ -443,8 +553,12 @@ export function useEssay() {
       const newEssay = createInitialEssay();
       setEssay(newEssay);
       saveLocalEssay(newEssay);
+      lastSavedEssayRef.current = JSON.stringify(newEssay);
+      setHasUnsavedChanges(false);
     }
   }, [user, createNewEssay]);
+
+  const dismissSaveError = useCallback(() => setSaveError(null), []);
 
   return {
     essay,
@@ -452,6 +566,10 @@ export function useEssay() {
     currentEssayId,
     loading: loading || authLoading,
     showMigrationPrompt,
+    hasUnsavedChanges,
+    lastSavedAt,
+    saveError,
+    dismissSaveError,
     updateIntro,
     addClaim,
     updateClaim,

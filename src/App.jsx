@@ -158,6 +158,9 @@ function App() {
     currentEssayId,
     loading,
     showMigrationPrompt,
+    lastSavedAt,
+    saveError,
+    dismissSaveError,
     updateIntro,
     addClaim,
     updateClaim,
@@ -178,7 +181,8 @@ function App() {
 
   const currentEssay = essays?.find((e) => e.id === currentEssayId);
   const currentTitle = currentEssay?.title || 'Untitled';
-  const lastSaved = currentEssay?.updatedAt;
+  // Use lastSavedAt from hook, fall back to essay's updatedAt for initial load
+  const lastSaved = lastSavedAt || currentEssay?.updatedAt;
 
   if (loading) {
     return (
@@ -190,6 +194,13 @@ function App() {
 
   return (
     <div className="app">
+      {saveError && (
+        <div className="save-error-banner">
+          <span>{saveError}</span>
+          <button onClick={dismissSaveError} className="save-error-dismiss">×</button>
+        </div>
+      )}
+
       {showMigrationPrompt && (
         <MigrationPrompt
           onMigrate={handleMigrate}
