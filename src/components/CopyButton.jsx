@@ -1,6 +1,6 @@
 import { useClipboard } from '../hooks/useClipboard';
 
-export function CopyButton({ text, className = '', variant = 'icon' }) {
+export function CopyButton({ text, className = '', title = 'Copy to clipboard' }) {
   const { copied, copy } = useClipboard();
 
   const handleClick = (e) => {
@@ -9,23 +9,11 @@ export function CopyButton({ text, className = '', variant = 'icon' }) {
     copy(text);
   };
 
-  if (variant === 'full') {
-    return (
-      <button
-        className={`copy-btn copy-btn-full ${className}`}
-        onClick={handleClick}
-        title={copied ? 'Copied!' : 'Copy Full Essay'}
-      >
-        {copied ? 'Copied!' : 'Copy Full Essay'}
-      </button>
-    );
-  }
-
   return (
     <button
       className={`copy-btn copy-btn-icon ${className}`}
       onClick={handleClick}
-      title={copied ? 'Copied!' : 'Copy to clipboard'}
+      title={copied ? 'Copied!' : title}
     >
       {copied ? '✓' : '⧉'}
     </button>

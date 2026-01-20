@@ -84,8 +84,8 @@ function EssayEditor({
           <div className="header-cell">Purpose</div>
           <div className="header-cell">Outline</div>
           <div className="header-cell header-cell-paragraph" onClick={toggleParagraphColumn}>
-            <span className="paragraph-toggle-icon">{paragraphCollapsed ? '◀' : '▶'}</span>
-            <span className={paragraphCollapsed ? 'header-text-vertical' : ''}>Paragraph</span>
+            <span>{paragraphCollapsed ? '¶' : 'Paragraph'}</span>
+            <span className="paragraph-toggle-icon">{paragraphCollapsed ? '▶' : '◀'}</span>
           </div>
         </div>
 

@@ -1,30 +1,33 @@
-import { useRef, useLayoutEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { CopyButton } from './CopyButton';
 
-function useAutoResize(value, placeholder) {
+function useAutoResize(value, placeholder, disabled = false) {
   const ref = useRef(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const textarea = ref.current;
-    if (textarea) {
-      // Reset to measure content
-      textarea.style.minHeight = 'auto';
-      textarea.style.height = 'auto';
+    if (!textarea) return;
 
-      // If empty, measure placeholder height by temporarily setting value
-      let height = textarea.scrollHeight;
-      if (!value && placeholder) {
-        const originalValue = textarea.value;
-        textarea.value = placeholder;
-        height = Math.max(height, textarea.scrollHeight);
-        textarea.value = originalValue;
+    const resize = () => {
+      if (disabled) {
+        textarea.style.height = '0';
+        return;
       }
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    };
 
-      // Use minHeight so it can stretch to fill container
-      textarea.style.minHeight = height + 'px';
-      textarea.style.height = '';
+    // Initial resize
+    resize();
+
+    // Re-resize when container changes (e.g., column collapse/expand)
+    const observer = new ResizeObserver(resize);
+    if (textarea.parentElement) {
+      observer.observe(textarea.parentElement);
     }
-  }, [value, placeholder]);
+
+    return () => observer.disconnect();
+  }, [value, disabled]);
 
   return ref;
 }
@@ -75,7 +78,7 @@ export function OutlineCell({ value, onChange, placeholder, className = '' }) {
 }
 
 export function ParagraphCell({ value, onChange, placeholder, rowSpan, collapsed, onExpand }) {
-  const textareaRef = useAutoResize(value, placeholder);
+  const textareaRef = useAutoResize(value, placeholder, collapsed);
   const hasContent = value && value.trim().length > 0;
 
   const handleClick = () => {

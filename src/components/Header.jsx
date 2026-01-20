@@ -109,7 +109,7 @@ export function Header({
 
       <div className="header-actions">
         {showEditor && (
-          <CopyButton text={getFullEssayText(essay)} variant="full" />
+          <CopyButton text={getFullEssayText(essay)} title="Copy Full Essay" className="copy-btn-header" />
         )}
 
         <div className="auth-section">
