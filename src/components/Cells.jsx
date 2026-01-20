@@ -32,13 +32,15 @@ function useAutoResize(value, placeholder, disabled = false) {
   return ref;
 }
 
-export function SectionLabel({ children, rowSpan }) {
+export function SectionLabel({ children, rowSpan, onClick, collapsed }) {
   return (
     <div
-      className="section-label"
+      className={`section-label ${onClick ? 'section-label-clickable' : ''} ${collapsed ? 'section-label-collapsed' : ''}`}
       style={{ gridRow: `span ${rowSpan}` }}
+      onClick={onClick}
     >
-      {children}
+      <span className="section-label-text">{children}</span>
+      {onClick && <span className="section-collapse-icon">{collapsed ? '▶' : '▼'}</span>}
     </div>
   );
 }

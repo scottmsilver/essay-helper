@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { OutlineCell, ParagraphCell, PurposeCell, SectionLabel } from './Cells';
 import { AddRemoveActions } from './AddRemoveActions';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export function IntroSection({
   intro,
@@ -9,14 +11,33 @@ export function IntroSection({
   removeClaim,
   paragraphCollapsed,
   onExpandParagraph,
+  sectionCollapsed,
+  onToggleSection,
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const rowCount = 3 + intro.claims.length; // hook, background, thesis, + claims
 
+  const handleRemoveClaim = (claimId) => {
+    const claim = intro.claims.find(c => c.id === claimId);
+    if (claim?.text?.trim()) {
+      setConfirmDelete({ type: 'claim', id: claimId });
+    } else {
+      removeClaim(claimId);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (confirmDelete) {
+      removeClaim(confirmDelete.id);
+      setConfirmDelete(null);
+    }
+  };
+
   return (
-    <div className="section section-intro">
+    <div className={`section section-intro ${sectionCollapsed ? 'section-collapsed' : ''}`}>
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
         {/* Row 1: Hook */}
-        <SectionLabel rowSpan={rowCount}>Intro</SectionLabel>
+        <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>Intro</SectionLabel>
         <PurposeCell label="Hook">Grab the reader</PurposeCell>
         <OutlineCell
           value={intro.hook}
@@ -57,12 +78,20 @@ export function IntroSection({
             thesis={intro.thesis}
             isOnly={intro.claims.length === 1}
             updateClaim={updateClaim}
-            removeClaim={removeClaim}
+            removeClaim={handleRemoveClaim}
             isLast={index === intro.claims.length - 1}
             addClaim={addClaim}
           />
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        title="Delete Claim?"
+        message="This claim has content. Are you sure you want to delete it?"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

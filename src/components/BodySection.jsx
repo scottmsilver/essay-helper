@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { OutlineCell, ParagraphCell, PurposeCell, SectionLabel } from './Cells';
 import { AddRemoveActions } from './AddRemoveActions';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export function BodySection({
   bodyParagraph,
@@ -11,14 +13,34 @@ export function BodySection({
   removeProofBlock,
   paragraphCollapsed,
   onExpandParagraph,
+  sectionCollapsed,
+  onToggleSection,
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const rowCount = 2 + bodyParagraph.proofBlocks.length * 4;
   const claimText = claim?.text || `[Claim ${bodyIndex + 1}]`;
 
+  const handleRemoveProofBlock = (bodyId, proofBlockId) => {
+    const proofBlock = bodyParagraph.proofBlocks.find(pb => pb.id === proofBlockId);
+    const hasContent = proofBlock?.quote?.trim() || proofBlock?.analysis?.trim() || proofBlock?.connection?.trim();
+    if (hasContent) {
+      setConfirmDelete({ bodyId, proofBlockId });
+    } else {
+      removeProofBlock(bodyId, proofBlockId);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (confirmDelete) {
+      removeProofBlock(confirmDelete.bodyId, confirmDelete.proofBlockId);
+      setConfirmDelete(null);
+    }
+  };
+
   return (
-    <div className={`section section-body section-body-${bodyIndex % 3}`}>
+    <div className={`section section-body section-body-${bodyIndex % 3} ${sectionCollapsed ? 'section-collapsed' : ''}`}>
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
-        <SectionLabel rowSpan={rowCount}>Body {bodyIndex + 1}</SectionLabel>
+        <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>Body {bodyIndex + 1}</SectionLabel>
         <PurposeCell label="Purpose">
           State that you will prove <em>{claimText}</em>
         </PurposeCell>
@@ -46,7 +68,7 @@ export function BodySection({
             isOnly={bodyParagraph.proofBlocks.length === 1}
             isLast={pbIndex === bodyParagraph.proofBlocks.length - 1}
             updateProofBlock={updateProofBlock}
-            removeProofBlock={removeProofBlock}
+            removeProofBlock={handleRemoveProofBlock}
             addProofBlock={addProofBlock}
           />
         ))}
@@ -60,6 +82,14 @@ export function BodySection({
           placeholder={`How do all your proof blocks connect to prove "${claimText}"?`}
         />
       </div>
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        title="Delete Proof Block?"
+        message="This proof block has content. Are you sure you want to delete it?"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

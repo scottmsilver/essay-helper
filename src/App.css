@@ -10,7 +10,7 @@ body {
 
 .app {
   min-height: 100vh;
-  padding: 0 12px 40px;
+  padding: 0 8px 24px;
   background-color: #f5f5f5;
 }
 
@@ -49,8 +49,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 20px 20px 0;
+  margin-bottom: 12px;
+  padding: 8px 8px 0 0;
 }
 
 .app-header h1 {
@@ -85,12 +85,12 @@ body {
 }
 
 .header-cell {
-  padding: 12px 8px;
+  padding: 6px 8px;
   border-right: 1px solid #666;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .header-cell:last-child {
@@ -108,6 +108,11 @@ body {
   transition: background-color 0.2s;
 }
 
+.paragraph-collapsed .header-cell-paragraph {
+  gap: 4px;
+  white-space: nowrap;
+}
+
 .header-cell-paragraph:hover {
   background-color: #555;
 }
@@ -115,6 +120,9 @@ body {
 .paragraph-toggle-icon {
   font-size: 0.7rem;
   transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  line-height: 1;
 }
 
 /* Section containers */
@@ -142,7 +150,7 @@ body {
 /* Collapsed paragraph column state */
 .paragraph-collapsed .header-row,
 .paragraph-collapsed .section-grid {
-  grid-template-columns: 40px 200px 1fr 30px;
+  grid-template-columns: 40px 200px 1fr 45px;
 }
 
 .paragraph-collapsed .paragraph-cell-wrapper {
@@ -173,6 +181,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   padding: 8px;
   font-weight: bold;
   font-size: 0.75rem;
@@ -183,6 +192,40 @@ body {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
+  white-space: nowrap;
+}
+
+.section-label-clickable {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.section-label-clickable:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.section-collapse-icon {
+  font-size: 0.55rem;
+  opacity: 0.6;
+}
+
+/* Collapsed section styles */
+.section-collapsed .section-grid > *:not(.section-label):not(.paragraph-cell-wrapper) {
+  display: none;
+}
+
+.section-collapsed .section-grid {
+  grid-template-columns: 40px 1fr !important;
+  grid-template-rows: auto !important;
+}
+
+.section-collapsed .section-label {
+  grid-row: span 1 !important;
+}
+
+.section-collapsed .paragraph-cell-wrapper {
+  grid-column: 2;
+  grid-row: 1;
 }
 
 /* Component label (second column) */
@@ -194,45 +237,41 @@ body {
   font-weight: 500;
   font-size: 0.85rem;
   border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e8e8e8;
 }
 
-.claim-actions {
+/* Shared action button container styles */
+.claim-actions,
+.purpose-actions,
+.proof-header-actions {
   display: flex;
-  gap: 4px;
+  gap: 1px;
+  background-color: rgba(0, 0, 0, 0.06);
+  border-radius: 9px;
+  padding: 0;
 }
 
 .btn-add,
 .btn-remove {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: none;
-  border-radius: 3px;
+  border-radius: 50%;
   cursor: pointer;
-  font-weight: bold;
   font-size: 14px;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: transparent;
+  color: #888;
+  transition: all 0.15s ease;
 }
 
-.btn-add {
-  background-color: #4caf50;
-  color: white;
-}
-
-.btn-add:hover {
-  background-color: #45a049;
-}
-
-.btn-remove {
-  background-color: #f44336;
-  color: white;
-}
-
+.btn-add:hover,
 .btn-remove:hover {
-  background-color: #da190b;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #333;
 }
 
 /* Purpose cell (second column - combined component + purpose) */
@@ -242,7 +281,7 @@ body {
   color: #555;
   background-color: transparent;
   border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e8e8e8;
   align-self: stretch;
 }
 
@@ -256,7 +295,8 @@ body {
   font-weight: 600;
   font-size: 0.85rem;
   color: #333;
-  margin-bottom: 2px;
+  margin-bottom: 0;
+  line-height: 1.2;
 }
 
 .purpose-label-inline {
@@ -268,12 +308,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 2px;
-}
-
-.purpose-actions {
-  display: flex;
-  gap: 4px;
+  margin-bottom: 0;
 }
 
 .restatement-purpose {
@@ -310,7 +345,7 @@ body {
   padding: 8px;
   font-size: 0.85rem;
   border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e8e8e8;
   min-height: 2em;
 }
 
@@ -323,7 +358,7 @@ body {
 .outline-cell-wrapper {
   position: relative;
   border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e8e8e8;
   min-width: 0;
   background: inherit;
   align-self: stretch;
@@ -378,7 +413,7 @@ body {
   min-height: 100%;
   padding: 12px 24px 12px 12px;
   font-size: 0.9rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e8e8e8;
   line-height: 1.5;
   box-sizing: border-box;
 }
@@ -428,10 +463,18 @@ body {
 
 .copy-btn-header {
   position: static;
-  width: 32px;
-  height: 32px;
-  font-size: 18px;
-  margin-right: 10px;
+  width: auto;
+  height: auto;
+  padding: 4px;
+  background-color: transparent;
+  color: #333;
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.copy-btn-header:hover {
+  opacity: 1;
+  background-color: transparent;
 }
 
 /* Color coding for sections */
@@ -482,11 +525,11 @@ body {
   align-items: center;
   justify-content: flex-start;
   gap: 4px;
-  padding: 0 8px;
+  padding: 2px 8px;
   font-weight: 600;
   font-size: 0.7rem;
   line-height: 1.2;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e8e8e8;
   border-right: 1px solid #ccc;
 }
 
@@ -494,9 +537,16 @@ body {
   color: #333;
 }
 
+/* Smaller buttons for proof header */
 .proof-header-actions {
-  display: flex;
-  gap: 4px;
+  border-radius: 8px;
+}
+
+.proof-header-actions .btn-add,
+.proof-header-actions .btn-remove {
+  width: 14px;
+  height: 14px;
+  font-size: 12px;
 }
 
 .purpose-desc {
@@ -558,7 +608,7 @@ textarea::placeholder {
 
   .paragraph-collapsed .header-row,
   .paragraph-collapsed .section-grid {
-    grid-template-columns: 36px 180px 1fr 30px;
+    grid-template-columns: 36px 180px 1fr 45px;
   }
 }
 
@@ -577,10 +627,10 @@ textarea::placeholder {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
 }
 
-.home-btn {
+.menu-btn {
   background: none;
   border: none;
   padding: 8px;
@@ -592,7 +642,7 @@ textarea::placeholder {
   justify-content: center;
 }
 
-.home-btn:hover {
+.menu-btn:hover {
   background-color: #eee;
   color: #333;
 }
@@ -602,8 +652,9 @@ textarea::placeholder {
   border: none;
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 400;
+  font-family: 'Georgia', 'Times New Roman', serif;
   color: #333;
   border-radius: 4px;
   max-width: 300px;
@@ -617,8 +668,9 @@ textarea::placeholder {
 }
 
 .title-input {
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 400;
+  font-family: 'Georgia', 'Times New Roman', serif;
   padding: 8px 12px;
   border: 2px solid #2196f3;
   border-radius: 4px;
@@ -633,8 +685,8 @@ textarea::placeholder {
 }
 
 .last-saved {
-  font-size: 0.8rem;
-  color: #888;
+  font-size: 0.7rem;
+  color: #999;
 }
 
 .essay-selector-btn {
@@ -694,15 +746,15 @@ textarea::placeholder {
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: block;
 }
 
 .user-avatar-placeholder {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background-color: #4285f4;
   color: white;
@@ -710,7 +762,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: center;
   font-weight: 500;
-  font-size: 1rem;
+  font-size: 0.8rem;
 }
 
 .avatar-dropdown {
@@ -1091,4 +1143,72 @@ textarea::placeholder {
   text-align: center;
   color: #888;
   font-size: 0.9rem;
+}
+
+/* Confirm dialog */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirm-dialog {
+  background: white;
+  border-radius: 8px;
+  padding: 20px 24px;
+  max-width: 340px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.confirm-title {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.confirm-message {
+  margin: 0 0 16px 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.confirm-btn-cancel {
+  background-color: #eee;
+  color: #333;
+}
+
+.confirm-btn-cancel:hover {
+  background-color: #ddd;
+}
+
+.confirm-btn-delete {
+  background-color: #e53935;
+  color: white;
+}
+
+.confirm-btn-delete:hover {
+  background-color: #c62828;
 }

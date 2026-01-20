@@ -28,6 +28,28 @@ function getFullEssayText(essay) {
   return paragraphs.join('\n\n');
 }
 
+const COLLAPSED_STORAGE_KEY = 'essay-helper-collapsed-sections';
+
+function loadCollapsedState() {
+  try {
+    const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load collapsed state:', e);
+  }
+  return { paragraph: true, sections: {} };
+}
+
+function saveCollapsedState(state) {
+  try {
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('Failed to save collapsed state:', e);
+  }
+}
+
 function EssayEditor({
   essay,
   currentEssayId,
@@ -48,7 +70,8 @@ function EssayEditor({
 }) {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [paragraphCollapsed, setParagraphCollapsed] = useState(true);
+  const [collapsedState, setCollapsedState] = useState(loadCollapsedState);
+  const paragraphCollapsed = collapsedState.paragraph ?? true;
 
   useEffect(() => {
     if (id && id !== currentEssayId) {
@@ -63,7 +86,20 @@ function EssayEditor({
   };
 
   const toggleParagraphColumn = () => {
-    setParagraphCollapsed(!paragraphCollapsed);
+    const newState = { ...collapsedState, paragraph: !paragraphCollapsed };
+    setCollapsedState(newState);
+    saveCollapsedState(newState);
+  };
+
+  const isSectionCollapsed = (sectionKey) => {
+    return collapsedState.sections?.[sectionKey] ?? false;
+  };
+
+  const toggleSection = (sectionKey) => {
+    const newSections = { ...collapsedState.sections, [sectionKey]: !isSectionCollapsed(sectionKey) };
+    const newState = { ...collapsedState, sections: newSections };
+    setCollapsedState(newState);
+    saveCollapsedState(newState);
   };
 
   return (
@@ -96,7 +132,9 @@ function EssayEditor({
           updateClaim={updateClaim}
           removeClaim={removeClaim}
           paragraphCollapsed={paragraphCollapsed}
-          onExpandParagraph={() => setParagraphCollapsed(false)}
+          onExpandParagraph={() => { setCollapsedState(s => ({ ...s, paragraph: false })); saveCollapsedState({ ...collapsedState, paragraph: false }); }}
+          sectionCollapsed={isSectionCollapsed('intro')}
+          onToggleSection={() => toggleSection('intro')}
         />
 
         {essay.bodyParagraphs.map((bodyParagraph, index) => (
@@ -110,7 +148,9 @@ function EssayEditor({
             updateProofBlock={updateProofBlock}
             removeProofBlock={removeProofBlock}
             paragraphCollapsed={paragraphCollapsed}
-            onExpandParagraph={() => setParagraphCollapsed(false)}
+            onExpandParagraph={() => { setCollapsedState(s => ({ ...s, paragraph: false })); saveCollapsedState({ ...collapsedState, paragraph: false }); }}
+            sectionCollapsed={isSectionCollapsed(`body-${index}`)}
+            onToggleSection={() => toggleSection(`body-${index}`)}
           />
         ))}
 
@@ -120,7 +160,9 @@ function EssayEditor({
           claims={essay.intro.claims}
           updateConclusion={updateConclusion}
           paragraphCollapsed={paragraphCollapsed}
-          onExpandParagraph={() => setParagraphCollapsed(false)}
+          onExpandParagraph={() => { setCollapsedState(s => ({ ...s, paragraph: false })); saveCollapsedState({ ...collapsedState, paragraph: false }); }}
+          sectionCollapsed={isSectionCollapsed('conclusion')}
+          onToggleSection={() => toggleSection('conclusion')}
         />
       </main>
     </>

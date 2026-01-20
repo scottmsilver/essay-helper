@@ -7,6 +7,8 @@ export function ConclusionSection({
   updateConclusion,
   paragraphCollapsed,
   onExpandParagraph,
+  sectionCollapsed,
+  onToggleSection,
 }) {
   const rowCount = 2; // restatement + so what
 
@@ -17,10 +19,10 @@ export function ConclusionSection({
     : `[Thesis] because ${claimsList}`;
 
   return (
-    <div className="section section-conclusion">
+    <div className={`section section-conclusion ${sectionCollapsed ? 'section-collapsed' : ''}`}>
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
         {/* Row 1: Restatement */}
-        <SectionLabel rowSpan={rowCount}>Conclusion</SectionLabel>
+        <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>Conclusion</SectionLabel>
         <PurposeCell label="Restatement">
           <span className="restatement-purpose">{restatementPurpose}</span>
         </PurposeCell>
