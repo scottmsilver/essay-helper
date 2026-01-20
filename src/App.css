@@ -295,7 +295,7 @@ body {
 
 .outline-cell:hover,
 .paragraph-cell:hover {
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 .outline-cell:focus,
@@ -319,7 +319,7 @@ body {
   background-color: transparent;
 }
 
-/* Outline cell wrapper with help icon */
+/* Outline cell wrapper */
 .outline-cell-wrapper {
   position: relative;
   border-right: 1px solid #ccc;
@@ -327,6 +327,28 @@ body {
   min-width: 0;
   background: inherit;
   align-self: stretch;
+  transition: box-shadow 0.2s ease;
+}
+
+/* Show placeholder hint when hovering adjacent purpose cell */
+.purpose-cell:hover + .outline-cell-wrapper .outline-cell {
+  color: transparent;
+}
+
+.purpose-cell:hover + .outline-cell-wrapper::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #999;
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
 }
 
 .outline-cell-wrapper .outline-cell {
@@ -336,29 +358,6 @@ body {
   min-height: 100%;
   border-right: none;
   border-bottom: none;
-}
-
-.help-icon {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 18px;
-  height: 18px;
-  background-color: #666;
-  color: white;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: help;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.help-icon:hover {
-  opacity: 1;
 }
 
 /* Paragraph cell wrapper */

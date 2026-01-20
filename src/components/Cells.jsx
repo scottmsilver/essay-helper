@@ -58,11 +58,10 @@ export function PurposeCell({ label, children, className = '', actions }) {
 }
 
 export function OutlineCell({ value, onChange, placeholder, className = '' }) {
-  const hasContent = value && value.trim().length > 0;
   const textareaRef = useAutoResize(value, placeholder);
 
   return (
-    <div className={`outline-cell-wrapper ${className}`}>
+    <div className={`outline-cell-wrapper ${className}`} data-placeholder={placeholder}>
       <textarea
         ref={textareaRef}
         className={`outline-cell ${className}`}
@@ -70,9 +69,6 @@ export function OutlineCell({ value, onChange, placeholder, className = '' }) {
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
       />
-      {hasContent && (
-        <span className="help-icon" title={placeholder}>?</span>
-      )}
     </div>
   );
 }
