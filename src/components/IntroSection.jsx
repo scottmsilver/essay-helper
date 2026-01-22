@@ -104,15 +104,16 @@ function ClaimRow({ claim, index, thesis, isOnly, updateClaim, removeClaim, isLa
     />
   );
 
+  const thesisText = thesis || '[thesis]';
   return (
     <>
       <PurposeCell label={`Claim ${index + 1}`} actions={actions}>
-        Because... (reason {index + 1} why <em>{thesis || '[thesis]'}</em> is true)
+        Because... (reason {index + 1} why <span className="ref">{thesisText}</span> is true)
       </PurposeCell>
       <OutlineCell
         value={claim.text}
         onChange={(value) => updateClaim(claim.id, value)}
-        placeholder={`Claim ${index + 1}: Why is "${thesis || '[thesis]'}" true?`}
+        placeholderContent={<>Claim {index + 1}: Why is <span className="ref">{thesisText}</span> true?</>}
       />
     </>
   );

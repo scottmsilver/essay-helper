@@ -45,6 +45,12 @@ body {
   white-space: nowrap;
 }
 
+/* Referenced content from other sections */
+.ref {
+  font-style: italic;
+  opacity: 0.85;
+}
+
 /* Save error banner */
 .save-error-banner {
   position: fixed;
@@ -379,11 +385,6 @@ body {
   margin-bottom: 0;
 }
 
-.restatement-purpose {
-  font-style: italic;
-  font-size: 0.75rem;
-}
-
 /* Editable cell base styles */
 .outline-cell,
 .paragraph-cell {
@@ -433,12 +434,38 @@ body {
   transition: box-shadow 0.2s ease;
 }
 
+/* Custom JSX placeholder overlay */
+.outline-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px;
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* Hide JSX placeholder when there's content */
+.outline-cell-wrapper.has-content .outline-placeholder {
+  display: none;
+}
+
 /* Show placeholder hint when hovering adjacent purpose cell */
 .purpose-cell:hover + .outline-cell-wrapper .outline-cell {
   color: transparent;
 }
 
-.purpose-cell:hover + .outline-cell-wrapper::before {
+/* Show JSX placeholder on hover (even when has content) */
+.purpose-cell:hover + .outline-cell-wrapper .outline-placeholder {
+  display: block;
+}
+
+/* Fallback for string placeholders using ::before */
+.purpose-cell:hover + .outline-cell-wrapper:not(:has(.outline-placeholder))::before {
   content: attr(data-placeholder);
   position: absolute;
   top: 0;

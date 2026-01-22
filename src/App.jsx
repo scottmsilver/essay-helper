@@ -138,6 +138,7 @@ function EssayEditor({
             key={bodyParagraph.id}
             bodyParagraph={bodyParagraph}
             bodyIndex={index}
+            thesis={essay.intro.thesis}
             claim={getClaimById(bodyParagraph.provingClaimId)}
             updateBodyParagraph={updateBodyParagraph}
             addProofBlock={addProofBlock}

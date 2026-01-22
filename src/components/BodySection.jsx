@@ -6,6 +6,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 export function BodySection({
   bodyParagraph,
   bodyIndex,
+  thesis,
   claim,
   updateBodyParagraph,
   addProofBlock,
@@ -17,6 +18,14 @@ export function BodySection({
   const [confirmDelete, setConfirmDelete] = useState(null);
   const rowCount = 2 + bodyParagraph.proofBlocks.length * 4;
   const claimText = claim?.text || `[Claim ${bodyIndex + 1}]`;
+  const thesisText = thesis || '[Thesis]';
+
+  // Generate proof summaries from connection fields
+  const getProofSummary = (proofBlock, index) => {
+    const connection = proofBlock.connection?.trim();
+    return connection ? `Summary of "${connection}"` : `[Proof ${index + 1}]`;
+  };
+  const proofSummaries = bodyParagraph.proofBlocks.map((pb, i) => getProofSummary(pb, i));
 
   const handleRemoveProofBlock = (bodyId, proofBlockId) => {
     const proofBlock = bodyParagraph.proofBlocks.find(pb => pb.id === proofBlockId);
@@ -40,12 +49,12 @@ export function BodySection({
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
         <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>Body {bodyIndex + 1}</SectionLabel>
         <PurposeCell label="Purpose">
-          State that you will prove <em>{claimText}</em>
+          State that <span className="ref">{claimText}</span> supports <span className="ref">{thesisText}</span>
         </PurposeCell>
         <OutlineCell
           value={bodyParagraph.purpose}
           onChange={(value) => updateBodyParagraph(bodyParagraph.id, 'purpose', value)}
-          placeholder={`e.g., I will prove that ${claimText} is true by showing...`}
+          placeholderContent={<>e.g., <span className="ref">{thesisText}</span> is true because <span className="ref">{claimText}</span>.</>}
         />
         <ParagraphCell
           rowSpan={rowCount}
@@ -70,12 +79,12 @@ export function BodySection({
         ))}
 
         <PurposeCell label="Recap">
-          Tie it together showing why <em>{claimText}</em> is true
+          Tie body together to say <span className="ref">{thesisText}</span> is true because <span className="ref">{claimText}</span> is true because {proofSummaries.map((summary, i) => <span key={i} className="ref">{summary}</span>).reduce((prev, curr, i) => i === 0 ? [curr] : [...prev, ' ', curr], [])} are true
         </PurposeCell>
         <OutlineCell
           value={bodyParagraph.recap}
           onChange={(value) => updateBodyParagraph(bodyParagraph.id, 'recap', value)}
-          placeholder={`How do all your proof blocks connect to prove "${claimText}"?`}
+          placeholderContent={<>e.g., {proofSummaries.map((summary, i) => <span key={i}><span className="ref">{summary}</span>{i < proofSummaries.length - 1 ? ', ' : ' '}</span>)}show that <span className="ref">{claimText}</span> is true which shows that <span className="ref">{thesisText}</span> is true.</>}
         />
       </div>
 
@@ -125,7 +134,7 @@ function ProofBlockRows({
       <OutlineCell
         value={proofBlock.quote}
         onChange={(value) => updateProofBlock(bodyId, proofBlock.id, 'quote', value)}
-        placeholder={`What evidence or quote supports "${claimText}"?`}
+        placeholderContent={<>What evidence or quote supports <span className="ref">{claimText}</span>?</>}
         className={depthClass}
       />
 
@@ -140,12 +149,12 @@ function ProofBlockRows({
       />
 
       <PurposeCell label="Connection" className={`${depthClass} proof-last-row`}>
-        Why this proves <em>{claimText}</em>
+        Why this proves <span className="ref">{claimText}</span>
       </PurposeCell>
       <OutlineCell
         value={proofBlock.connection}
         onChange={(value) => updateProofBlock(bodyId, proofBlock.id, 'connection', value)}
-        placeholder={`How does this prove "${claimText}"?`}
+        placeholderContent={<>How does this prove <span className="ref">{claimText}</span>?</>}
         className={`${depthClass} proof-last-row`}
       />
     </>
