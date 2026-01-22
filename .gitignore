@@ -23,8 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 
-# Screenshots (reference images)
+# Screenshots and images (reference)
 *.png
+*.jpg
+
+# Emacs backup files
+\#*\#
 
 # Environment variables
 .env.local
