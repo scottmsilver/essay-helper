@@ -49,12 +49,12 @@ export function BodySection({
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
         <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>Body {bodyIndex + 1}</SectionLabel>
         <PurposeCell label="Purpose">
-          State that <span className="ref">{claimText}</span> supports <span className="ref">{thesisText}</span>
+          Topic sentence: introduce that you will prove <span className="ref">{claimText}</span>
         </PurposeCell>
         <OutlineCell
           value={bodyParagraph.purpose}
           onChange={(value) => updateBodyParagraph(bodyParagraph.id, 'purpose', value)}
-          placeholderContent={<>e.g., <span className="ref">{thesisText}</span> is true because <span className="ref">{claimText}</span>.</>}
+          placeholderContent={<>e.g., This paragraph will show that <span className="ref">{claimText}</span>.</>}
         />
         <ParagraphCell
           rowSpan={rowCount}
@@ -128,23 +128,23 @@ function ProofBlockRows({
         </div>
       </div>
 
-      <PurposeCell label="Quote" className={depthClass}>
-        Evidence / Quote
+      <PurposeCell label="Evidence" className={depthClass}>
+        Supporting evidence
       </PurposeCell>
       <OutlineCell
         value={proofBlock.quote}
         onChange={(value) => updateProofBlock(bodyId, proofBlock.id, 'quote', value)}
-        placeholderContent={<>What evidence or quote supports <span className="ref">{claimText}</span>?</>}
+        placeholderContent={<>What quote or other evidence supports <span className="ref">{claimText}</span>?</>}
         className={depthClass}
       />
 
       <PurposeCell label="Analysis" className={depthClass}>
-        What this means
+        Interpret the evidence
       </PurposeCell>
       <OutlineCell
         value={proofBlock.analysis}
         onChange={(value) => updateProofBlock(bodyId, proofBlock.id, 'analysis', value)}
-        placeholder="What does this evidence mean? Explain the quote."
+        placeholder="What does this evidence show? Explain its significance."
         className={depthClass}
       />
 
