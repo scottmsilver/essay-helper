@@ -39,8 +39,8 @@ export function SectionLabel({ children, rowSpan, onClick, collapsed }) {
       style={{ gridRow: `span ${rowSpan}` }}
       onClick={onClick}
     >
-      <span className="section-label-text">{children}</span>
-      {onClick && <span className="section-collapse-icon">{collapsed ? '▶' : '▼'}</span>}
+      {children}
+      {onClick && <span className="section-collapse-icon">{collapsed ? '▼' : '▼'}</span>}
     </div>
   );
 }

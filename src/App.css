@@ -128,10 +128,15 @@ body {
 /* Section containers */
 .section {
   border-bottom: 2px solid #999;
+  transition: all 0.3s ease;
 }
 
 .section:last-child {
   border-bottom: none;
+}
+
+.section-collapsed {
+  border-bottom: 1px solid #ccc;
 }
 
 /* Section grid - 4 columns matching header */
@@ -189,15 +194,14 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   border-right: 1px solid #ccc;
+  white-space: nowrap;
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
-  white-space: nowrap;
 }
 
 .section-label-clickable {
   cursor: pointer;
-  transition: background-color 0.2s;
 }
 
 .section-label-clickable:hover {
@@ -206,26 +210,39 @@ body {
 
 .section-collapse-icon {
   font-size: 0.55rem;
-  opacity: 0.6;
+  opacity: 0.5;
+  padding: 3px 4px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.06);
+  transition: all 0.15s ease;
+}
+
+.section-label-clickable:hover .section-collapse-icon {
+  opacity: 0.8;
+  background-color: rgba(0, 0, 0, 0.12);
 }
 
 /* Collapsed section styles */
-.section-collapsed .section-grid > *:not(.section-label):not(.paragraph-cell-wrapper) {
+.section-collapsed .section-grid > *:not(.section-label) {
   display: none;
 }
 
 .section-collapsed .section-grid {
-  grid-template-columns: 40px 1fr !important;
+  grid-template-columns: 1fr !important;
   grid-template-rows: auto !important;
 }
 
 .section-collapsed .section-label {
   grid-row: span 1 !important;
+  writing-mode: horizontal-tb;
+  transform: rotate(0deg);
+  border-right: none;
+  padding: 6px 12px;
+  justify-content: flex-start;
 }
 
-.section-collapsed .paragraph-cell-wrapper {
-  grid-column: 2;
-  grid-row: 1;
+.section-collapsed .section-collapse-icon {
+  opacity: 0.35;
 }
 
 /* Component label (second column) */
