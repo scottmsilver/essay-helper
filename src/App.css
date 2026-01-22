@@ -97,32 +97,85 @@ body {
   border-right: none;
 }
 
-/* Paragraph column header - clickable toggle */
-.header-cell-paragraph {
+/* Column headers - clickable toggle */
+.header-cell-collapsible {
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   user-select: none;
   transition: background-color 0.2s;
+  overflow: hidden;
 }
 
-.paragraph-collapsed .header-cell-paragraph {
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.header-cell-paragraph:hover {
+.header-cell-collapsible:hover {
   background-color: #555;
 }
 
-.paragraph-toggle-icon {
-  font-size: 0.7rem;
-  transition: transform 0.3s ease;
-  display: flex;
-  align-items: center;
-  line-height: 1;
+.column-collapse-icon {
+  font-size: 0.55rem;
+  opacity: 0.5;
+  padding: 3px 4px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.15);
+  transition: all 0.15s ease;
+}
+
+.header-cell-collapsible:hover .column-collapse-icon {
+  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Column collapse - CSS custom properties for grid columns */
+.essay-grid {
+  --col-label: 40px;
+  --col-purpose: 200px;
+  --col-outline: 1fr;
+  --col-paragraph: 1fr;
+}
+
+.essay-grid.purpose-collapsed { --col-purpose: 40px; }
+.essay-grid.outline-collapsed { --col-outline: 40px; }
+.essay-grid.paragraph-collapsed { --col-paragraph: 40px; }
+
+/* When both outline and paragraph are collapsed, shrink grid to fit */
+.essay-grid.outline-collapsed.paragraph-collapsed {
+  width: fit-content;
+}
+
+/* Apply grid columns via custom properties */
+.essay-grid .header-row,
+.essay-grid .section-grid {
+  grid-template-columns: var(--col-label) var(--col-purpose) var(--col-outline) var(--col-paragraph);
+}
+
+/* Hide content in collapsed columns */
+.purpose-collapsed .purpose-cell,
+.purpose-collapsed .proof-header {
+  font-size: 0;
+  line-height: 0;
+  padding: 2px;
+  overflow: hidden;
+}
+
+.purpose-collapsed .purpose-cell *,
+.purpose-collapsed .proof-header *,
+.outline-collapsed .outline-cell-wrapper *,
+.paragraph-collapsed .paragraph-cell-wrapper * {
+  display: none !important;
+}
+
+.outline-collapsed .outline-cell-wrapper,
+.paragraph-collapsed .paragraph-cell-wrapper {
+  overflow: hidden;
+}
+
+/* Collapsed column icon state */
+.purpose-collapsed .header-cell-collapsible:nth-child(2) .column-collapse-icon,
+.outline-collapsed .header-cell-collapsible:nth-child(3) .column-collapse-icon,
+.paragraph-collapsed .header-cell-collapsible:nth-child(4) .column-collapse-icon {
+  opacity: 0.35;
 }
 
 /* Section containers */
@@ -150,35 +203,6 @@ body {
 
 .section-grid > * {
   min-width: 0;
-}
-
-/* Collapsed paragraph column state */
-.paragraph-collapsed .header-row,
-.paragraph-collapsed .section-grid {
-  grid-template-columns: 40px 200px 1fr 45px;
-}
-
-.paragraph-collapsed .paragraph-cell-wrapper {
-  overflow: hidden;
-  cursor: pointer;
-  background-color: transparent;
-}
-
-.paragraph-collapsed .paragraph-cell-wrapper:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.paragraph-collapsed .paragraph-cell {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  background-color: transparent;
-  box-shadow: none;
-}
-
-.essay-grid:not(.paragraph-collapsed) .paragraph-cell {
-  opacity: 1;
-  transition: opacity 0.2s ease 0.1s;
 }
 
 /* Section label (first column, spans all rows) */
@@ -494,46 +518,15 @@ body {
   background-color: transparent;
 }
 
-/* Color coding for sections */
-.section-intro {
-  background-color: #c8e6c9; /* Green */
-}
+/* Color coding for sections - using custom properties */
+.section-intro { --section-bg: #c8e6c9; --label-bg: #a5d6a7; }
+.section-body-0 { --section-bg: #bbdefb; --label-bg: #90caf9; }
+.section-body-1 { --section-bg: #e1bee7; --label-bg: #ce93d8; }
+.section-body-2 { --section-bg: #b2dfdb; --label-bg: #80cbc4; }
+.section-conclusion { --section-bg: #ffe0b2; --label-bg: #ffcc80; }
 
-.section-intro .section-label {
-  background-color: #a5d6a7;
-}
-
-.section-body-0 {
-  background-color: #bbdefb; /* Blue */
-}
-
-.section-body-0 .section-label {
-  background-color: #90caf9;
-}
-
-.section-body-1 {
-  background-color: #e1bee7; /* Purple */
-}
-
-.section-body-1 .section-label {
-  background-color: #ce93d8;
-}
-
-.section-body-2 {
-  background-color: #b2dfdb; /* Teal */
-}
-
-.section-body-2 .section-label {
-  background-color: #80cbc4;
-}
-
-.section-conclusion {
-  background-color: #ffe0b2; /* Orange */
-}
-
-.section-conclusion .section-label {
-  background-color: #ffcc80;
-}
+.section { background-color: var(--section-bg); }
+.section .section-label { background-color: var(--label-bg); }
 
 /* Proof header - spans Purpose and Outline columns */
 .proof-header {
@@ -618,15 +611,14 @@ textarea::placeholder {
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-  .section-grid,
-  .header-row {
-    grid-template-columns: 36px 180px 1fr 1fr;
+  .essay-grid {
+    --col-label: 36px;
+    --col-purpose: 180px;
   }
 
-  .paragraph-collapsed .header-row,
-  .paragraph-collapsed .section-grid {
-    grid-template-columns: 36px 180px 1fr 45px;
-  }
+  .essay-grid.purpose-collapsed { --col-purpose: 36px; }
+  .essay-grid.outline-collapsed { --col-outline: 36px; }
+  .essay-grid.paragraph-collapsed { --col-paragraph: 36px; }
 }
 
 @media (max-width: 900px) {

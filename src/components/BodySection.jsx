@@ -11,8 +11,6 @@ export function BodySection({
   addProofBlock,
   updateProofBlock,
   removeProofBlock,
-  paragraphCollapsed,
-  onExpandParagraph,
   sectionCollapsed,
   onToggleSection,
 }) {
@@ -54,8 +52,6 @@ export function BodySection({
           value={bodyParagraph.paragraph}
           onChange={(value) => updateBodyParagraph(bodyParagraph.id, 'paragraph', value)}
           placeholder={`Write your body paragraph proving "${claimText}", weaving together your evidence, analysis, and connection...`}
-          collapsed={paragraphCollapsed}
-          onExpand={onExpandParagraph}
         />
 
         {bodyParagraph.proofBlocks.map((proofBlock, pbIndex) => (
@@ -110,7 +106,7 @@ function ProofBlockRows({
   return (
     <>
       <div className={`proof-header ${depthClass}`}>
-        <span className="proof-header-text">Proof {pbIndex + 1}</span>
+        <span className="proof-header-text">PROOF {pbIndex + 1}</span>
         <div className="proof-header-actions">
           <AddRemoveActions
             canRemove={!isOnly}

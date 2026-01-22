@@ -9,23 +9,14 @@ import { MigrationPrompt } from './components/MigrationPrompt';
 import './App.css';
 
 function getFullEssayText(essay) {
-  const paragraphs = [];
-
-  if (essay.intro.paragraph?.trim()) {
-    paragraphs.push(essay.intro.paragraph.trim());
-  }
-
-  for (const body of essay.bodyParagraphs) {
-    if (body.paragraph?.trim()) {
-      paragraphs.push(body.paragraph.trim());
-    }
-  }
-
-  if (essay.conclusion.paragraph?.trim()) {
-    paragraphs.push(essay.conclusion.paragraph.trim());
-  }
-
-  return paragraphs.join('\n\n');
+  return [
+    essay.intro.paragraph,
+    ...essay.bodyParagraphs.map(b => b.paragraph),
+    essay.conclusion.paragraph,
+  ]
+    .map(p => p?.trim())
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 const COLLAPSED_STORAGE_KEY = 'essay-helper-collapsed-sections';
@@ -39,7 +30,7 @@ function loadCollapsedState() {
   } catch (e) {
     console.error('Failed to load collapsed state:', e);
   }
-  return { paragraph: true, sections: {} };
+  return { sections: {} };
 }
 
 function saveCollapsedState(state) {
@@ -71,7 +62,12 @@ function EssayEditor({
   const navigate = useNavigate();
   const { id } = useParams();
   const [collapsedState, setCollapsedState] = useState(loadCollapsedState);
-  const paragraphCollapsed = collapsedState.paragraph ?? true;
+
+  // Column collapse state
+  const purposeCollapsed = collapsedState.purpose ?? false;
+  const outlineCollapsed = collapsedState.outline ?? false;
+  const paragraphCollapsed = collapsedState.paragraph ?? false;
+
 
   useEffect(() => {
     if (id && id !== currentEssayId) {
@@ -85,22 +81,20 @@ function EssayEditor({
     }
   };
 
-  const toggleParagraphColumn = () => {
-    const newState = { ...collapsedState, paragraph: !paragraphCollapsed };
+  // Generic toggle function for columns and sections
+  const toggleCollapse = (key, isSection = false) => {
+    let newState;
+    if (isSection) {
+      const newSections = { ...collapsedState.sections, [key]: !(collapsedState.sections?.[key] ?? false) };
+      newState = { ...collapsedState, sections: newSections };
+    } else {
+      newState = { ...collapsedState, [key]: !collapsedState[key] };
+    }
     setCollapsedState(newState);
     saveCollapsedState(newState);
   };
 
-  const isSectionCollapsed = (sectionKey) => {
-    return collapsedState.sections?.[sectionKey] ?? false;
-  };
-
-  const toggleSection = (sectionKey) => {
-    const newSections = { ...collapsedState.sections, [sectionKey]: !isSectionCollapsed(sectionKey) };
-    const newState = { ...collapsedState, sections: newSections };
-    setCollapsedState(newState);
-    saveCollapsedState(newState);
-  };
+  const isSectionCollapsed = (sectionKey) => collapsedState.sections?.[sectionKey] ?? false;
 
   return (
     <>
@@ -114,15 +108,19 @@ function EssayEditor({
         showEditor={true}
       />
 
-      <main className={`essay-grid ${paragraphCollapsed ? 'paragraph-collapsed' : ''}`}>
+      <main className={['essay-grid', purposeCollapsed && 'purpose-collapsed', outlineCollapsed && 'outline-collapsed', paragraphCollapsed && 'paragraph-collapsed'].filter(Boolean).join(' ')}>
         <div className="header-row">
           <div className="header-cell"></div>
-          <div className="header-cell">Purpose</div>
-          <div className="header-cell">Outline</div>
-          <div className="header-cell header-cell-paragraph" onClick={toggleParagraphColumn}>
-            <span>{paragraphCollapsed ? '¶' : 'Paragraph'}</span>
-            <span className="paragraph-toggle-icon">{paragraphCollapsed ? '▶' : '◀'}</span>
-          </div>
+          {[
+            { key: 'purpose', label: 'Purpose', short: 'P', collapsed: purposeCollapsed },
+            { key: 'outline', label: 'Outline', short: 'O', collapsed: outlineCollapsed },
+            { key: 'paragraph', label: 'Paragraph', short: '¶', collapsed: paragraphCollapsed },
+          ].map(col => (
+            <div key={col.key} className="header-cell header-cell-collapsible" onClick={() => toggleCollapse(col.key)}>
+              <span>{col.collapsed ? col.short : col.label}</span>
+              <span className="column-collapse-icon">▼</span>
+            </div>
+          ))}
         </div>
 
         <IntroSection
@@ -131,10 +129,8 @@ function EssayEditor({
           addClaim={addClaim}
           updateClaim={updateClaim}
           removeClaim={removeClaim}
-          paragraphCollapsed={paragraphCollapsed}
-          onExpandParagraph={() => { setCollapsedState(s => ({ ...s, paragraph: false })); saveCollapsedState({ ...collapsedState, paragraph: false }); }}
           sectionCollapsed={isSectionCollapsed('intro')}
-          onToggleSection={() => toggleSection('intro')}
+          onToggleSection={() => toggleCollapse('intro', true)}
         />
 
         {essay.bodyParagraphs.map((bodyParagraph, index) => (
@@ -147,10 +143,8 @@ function EssayEditor({
             addProofBlock={addProofBlock}
             updateProofBlock={updateProofBlock}
             removeProofBlock={removeProofBlock}
-            paragraphCollapsed={paragraphCollapsed}
-            onExpandParagraph={() => { setCollapsedState(s => ({ ...s, paragraph: false })); saveCollapsedState({ ...collapsedState, paragraph: false }); }}
             sectionCollapsed={isSectionCollapsed(`body-${index}`)}
-            onToggleSection={() => toggleSection(`body-${index}`)}
+            onToggleSection={() => toggleCollapse(`body-${index}`, true)}
           />
         ))}
 
@@ -159,10 +153,8 @@ function EssayEditor({
           thesis={essay.intro.thesis}
           claims={essay.intro.claims}
           updateConclusion={updateConclusion}
-          paragraphCollapsed={paragraphCollapsed}
-          onExpandParagraph={() => { setCollapsedState(s => ({ ...s, paragraph: false })); saveCollapsedState({ ...collapsedState, paragraph: false }); }}
           sectionCollapsed={isSectionCollapsed('conclusion')}
-          onToggleSection={() => toggleSection('conclusion')}
+          onToggleSection={() => toggleCollapse('conclusion', true)}
         />
       </main>
     </>

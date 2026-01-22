@@ -5,8 +5,6 @@ export function ConclusionSection({
   thesis,
   claims,
   updateConclusion,
-  paragraphCollapsed,
-  onExpandParagraph,
   sectionCollapsed,
   onToggleSection,
 }) {
@@ -36,8 +34,6 @@ export function ConclusionSection({
           value={conclusion.paragraph}
           onChange={(value) => updateConclusion('paragraph', value)}
           placeholder={`Write your conclusion restating "${thesis || '[thesis]'}" and explaining why it matters...`}
-          collapsed={paragraphCollapsed}
-          onExpand={onExpandParagraph}
         />
 
         {/* Row 2: So What */}

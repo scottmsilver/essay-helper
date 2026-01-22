@@ -40,7 +40,7 @@ export function SectionLabel({ children, rowSpan, onClick, collapsed }) {
       onClick={onClick}
     >
       {children}
-      {onClick && <span className="section-collapse-icon">{collapsed ? '▼' : '▼'}</span>}
+      {onClick && <span className="section-collapse-icon">▼</span>}
     </div>
   );
 }
@@ -75,21 +75,14 @@ export function OutlineCell({ value, onChange, placeholder, className = '' }) {
   );
 }
 
-export function ParagraphCell({ value, onChange, placeholder, rowSpan, collapsed, onExpand }) {
-  const textareaRef = useAutoResize(value, placeholder, collapsed);
+export function ParagraphCell({ value, onChange, placeholder, rowSpan }) {
+  const textareaRef = useAutoResize(value, placeholder);
   const hasContent = value && value.trim().length > 0;
-
-  const handleClick = () => {
-    if (collapsed && onExpand) {
-      onExpand();
-    }
-  };
 
   return (
     <div
-      className={`paragraph-cell-wrapper ${collapsed ? 'collapsed' : ''}`}
+      className="paragraph-cell-wrapper"
       style={{ gridRow: `span ${rowSpan}` }}
-      onClick={handleClick}
     >
       <textarea
         ref={textareaRef}
@@ -97,9 +90,8 @@ export function ParagraphCell({ value, onChange, placeholder, rowSpan, collapsed
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        disabled={collapsed}
       />
-      {hasContent && !collapsed && <CopyButton text={value} />}
+      {hasContent && <CopyButton text={value} />}
     </div>
   );
 }
