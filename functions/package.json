@@ -2,10 +2,16 @@
   "name": "functions",
   "description": "Cloud Functions for Essay Helper",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings=0 .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "cd .. && npm test -- --run functions/",
+    "audit": "npm audit --audit-level=moderate",
+    "typecheck": "tsc -p jsconfig.json --noEmit",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
+    "predeploy": "npm run lint && npm test",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"
   },
@@ -20,7 +26,12 @@
   },
   "devDependencies": {
     "eslint": "^8.57.0",
-    "eslint-config-google": "^0.14.0"
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3"
   },
   "private": true
 }
