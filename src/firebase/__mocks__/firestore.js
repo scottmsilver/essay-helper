@@ -152,3 +152,81 @@ export const savePublicEssay = vi.fn(async (ownerUid, essayId, essayData, title)
   }
   return essayId;
 });
+
+// Create a share for an essay
+export const createShare = vi.fn(async (ownerUid, essayId, email, permission, essayTitle, ownerEmail, ownerDisplayName) => {
+  const normalizedEmail = email.toLowerCase();
+
+  if (!mockData.users[ownerUid]?.essays?.[essayId]) {
+    throw new Error('Essay not found');
+  }
+
+  const essay = mockData.users[ownerUid].essays[essayId];
+  const currentCollaborators = essay.sharing?.collaborators || [];
+
+  const collaborator = {
+    email: normalizedEmail,
+    permission,
+    addedAt: new Date(),
+  };
+
+  const filtered = currentCollaborators.filter(c => c.email.toLowerCase() !== normalizedEmail);
+  const newCollaborators = [...filtered, collaborator];
+
+  essay.sharing = {
+    ...essay.sharing,
+    collaborators: newCollaborators,
+    collaboratorEmails: newCollaborators.map(c => c.email),
+    editorEmails: newCollaborators.filter(c => c.permission === 'editor').map(c => c.email),
+  };
+
+  // Update sharedWithMe
+  if (!mockData.sharedWithMe[normalizedEmail]) {
+    mockData.sharedWithMe[normalizedEmail] = { essays: {} };
+  }
+  mockData.sharedWithMe[normalizedEmail].essays[`${ownerUid}_${essayId}`] = {
+    essayId,
+    ownerUid,
+    ownerEmail,
+    ownerDisplayName,
+    title: essayTitle,
+    permission,
+  };
+
+  return { email: normalizedEmail, permission };
+});
+
+// Get all shares for an essay
+export const getEssayShares = vi.fn(async (ownerUid, essayId) => {
+  const essay = mockData.users[ownerUid]?.essays?.[essayId];
+  if (!essay) {
+    return [];
+  }
+
+  const collaborators = essay.sharing?.collaborators || [];
+  return collaborators.map(c => ({
+    email: c.email,
+    permission: c.permission,
+    addedAt: c.addedAt,
+  }));
+});
+
+// Delete a share from an essay
+export const deleteShare = vi.fn(async (ownerUid, essayId, email) => {
+  const normalizedEmail = email.toLowerCase();
+  const essay = mockData.users[ownerUid]?.essays?.[essayId];
+
+  if (essay?.sharing?.collaborators) {
+    const filtered = essay.sharing.collaborators.filter(
+      c => c.email.toLowerCase() !== normalizedEmail
+    );
+    essay.sharing.collaborators = filtered;
+    essay.sharing.collaboratorEmails = filtered.map(c => c.email);
+    essay.sharing.editorEmails = filtered.filter(c => c.permission === 'editor').map(c => c.email);
+  }
+
+  // Remove from sharedWithMe
+  if (mockData.sharedWithMe[normalizedEmail]?.essays) {
+    delete mockData.sharedWithMe[normalizedEmail].essays[`${ownerUid}_${essayId}`];
+  }
+});

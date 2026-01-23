@@ -415,6 +415,119 @@ export async function savePublicEssay(ownerUid, essayId, essayData, title) {
   return essayId;
 }
 
+// Create a share for an essay (simplified API for UI)
+export async function createShare(ownerUid, essayId, email, permission, essayTitle, ownerEmail, ownerDisplayName) {
+  const normalizedEmail = email.toLowerCase();
+  const essayDocRef = getEssayDocRef(ownerUid, essayId);
+
+  // Get current collaborators
+  const essaySnap = await getDoc(essayDocRef);
+  const essayData = essaySnap.exists() ? essaySnap.data() : {};
+  const currentCollaborators = essayData.sharing?.collaborators || [];
+
+  // Add or update collaborator
+  const collaborator = {
+    email: normalizedEmail,
+    permission,
+    addedAt: new Date(),
+  };
+
+  const filtered = currentCollaborators.filter(c => c.email.toLowerCase() !== normalizedEmail);
+  const newCollaborators = [...filtered, collaborator];
+
+  // Build email arrays for rules checking
+  const collaboratorEmails = newCollaborators.map(c => c.email);
+  const editorEmails = newCollaborators.filter(c => c.permission === 'editor').map(c => c.email);
+
+  // Update essay document
+  await setDoc(essayDocRef, {
+    sharing: {
+      ...essayData.sharing,
+      collaborators: newCollaborators,
+      collaboratorEmails,
+      editorEmails,
+    },
+  }, { merge: true });
+
+  // Create sharedWithMe reference for the recipient (triggers email notification)
+  const sharedDocRef = doc(db, 'sharedWithMe', normalizedEmail, 'essays', `${ownerUid}_${essayId}`);
+  await setDoc(sharedDocRef, {
+    essayId,
+    ownerUid,
+    ownerEmail,
+    ownerDisplayName,
+    title: essayTitle,
+    permission,
+    sharedAt: serverTimestamp(),
+  });
+
+  // Also create in top-level shares collection for easier querying
+  const shareDocRef = doc(db, 'shares', `${ownerUid}_${essayId}_${normalizedEmail}`);
+  await setDoc(shareDocRef, {
+    essayId,
+    ownerUid,
+    recipientEmail: normalizedEmail,
+    permission,
+    essayTitle,
+    ownerEmail,
+    ownerDisplayName,
+    createdAt: serverTimestamp(),
+  });
+
+  return { email: normalizedEmail, permission };
+}
+
+// Get all shares for an essay
+export async function getEssayShares(ownerUid, essayId) {
+  const essayDocRef = getEssayDocRef(ownerUid, essayId);
+  const essaySnap = await getDoc(essayDocRef);
+
+  if (!essaySnap.exists()) {
+    return [];
+  }
+
+  const essayData = essaySnap.data();
+  const collaborators = essayData.sharing?.collaborators || [];
+
+  return collaborators.map(c => ({
+    email: c.email,
+    permission: c.permission,
+    addedAt: c.addedAt,
+  }));
+}
+
+// Delete a share from an essay
+export async function deleteShare(ownerUid, essayId, email) {
+  const normalizedEmail = email.toLowerCase();
+  const essayDocRef = getEssayDocRef(ownerUid, essayId);
+
+  // Get current collaborators
+  const essaySnap = await getDoc(essayDocRef);
+  const essayData = essaySnap.exists() ? essaySnap.data() : {};
+
+  if (essayData.sharing && essayData.sharing.collaborators) {
+    const filtered = essayData.sharing.collaborators.filter(
+      c => c.email.toLowerCase() !== normalizedEmail
+    );
+    const collaboratorEmails = filtered.map(c => c.email);
+    const editorEmails = filtered.filter(c => c.permission === 'editor').map(c => c.email);
+
+    await updateDoc(essayDocRef, {
+      'sharing.collaborators': filtered,
+      'sharing.collaboratorEmails': collaboratorEmails,
+      'sharing.editorEmails': editorEmails,
+    });
+  }
+
+  // Remove sharedWithMe reference
+  const sharedDocRef = doc(db, 'sharedWithMe', normalizedEmail, 'essays', `${ownerUid}_${essayId}`);
+  await deleteDoc(sharedDocRef);
+
+  // Remove from top-level shares collection
+  const shareDocRef = doc(db, 'shares', `${ownerUid}_${essayId}_${normalizedEmail}`);
+  await deleteDoc(shareDocRef);
+}
+
 // Get essay with unified permission checking
 // Returns: { essay, permission: 'owner' | 'editor' | 'viewer' | null, ownerUid }
 export async function getEssayWithPermissions(essayId, currentUserUid, currentUserEmail) {

@@ -12,6 +12,9 @@ import {
   listSharedWithMe,
   getSharedEssay,
   saveSharedEssay as saveSharedEssayToFirestore,
+  createShare,
+  deleteShare,
+  getEssayShares,
 } from '../firebase/firestore';
 
 const STORAGE_KEY = 'essay-helper-data';
@@ -478,6 +481,56 @@ export function useEssay() {
     [user, currentEssayId, isSharedEssay, essays, markSaveComplete]
   );
 
+  // Share essay with a user by email
+  const shareEssay = useCallback(
+    async (email, permission) => {
+      if (!user || !currentEssayId || isSharedEssay) {
+        throw new Error('Cannot share: no essay selected or not owner');
+      }
+
+      const currentEssayData = essays.find((e) => e.id === currentEssayId);
+      const title = currentEssayData?.title || 'Untitled Essay';
+
+      await createShare(
+        user.uid,
+        currentEssayId,
+        email,
+        permission,
+        title,
+        user.email,
+        user.displayName
+      );
+
+      // Refresh sharing info
+      await loadSharingInfo();
+    },
+    [user, currentEssayId, isSharedEssay, essays, loadSharingInfo]
+  );
+
+  // Remove share from a user
+  const unshareEssay = useCallback(
+    async (email) => {
+      if (!user || !currentEssayId || isSharedEssay) {
+        throw new Error('Cannot unshare: no essay selected or not owner');
+      }
+
+      await deleteShare(user.uid, currentEssayId, email);
+
+      // Refresh sharing info
+      await loadSharingInfo();
+    },
+    [user, currentEssayId, isSharedEssay, loadSharingInfo]
+  );
+
+  // Get shares for current essay
+  const getShares = useCallback(async () => {
+    if (!user || !currentEssayId || isSharedEssay) {
+      return [];
+    }
+
+    return getEssayShares(user.uid, currentEssayId);
+  }, [user, currentEssayId, isSharedEssay]);
+
   // Create new essay
   const createNewEssay = useCallback(() => {
     const newId = generateId();
@@ -612,5 +665,8 @@ export function useEssay() {
     selectSharedEssay,
     loadSharingInfo,
     saveSharing,
+    shareEssay,
+    unshareEssay,
+    getShares,
   };
 }
