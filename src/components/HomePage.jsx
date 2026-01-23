@@ -2,7 +2,9 @@ import { formatRelativeDate } from '../utils/formatDate';
 
 export function HomePage({
   essays,
+  sharedEssays,
   onSelectEssay,
+  onSelectSharedEssay,
   onNewEssay,
   onDeleteEssay,
   isLoggedIn,
@@ -49,6 +51,31 @@ export function HomePage({
                   >
                     ×
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {sharedEssays && sharedEssays.length > 0 && (
+          <div className="essays-section shared-section">
+            <h2>Shared with me</h2>
+            <div className="essays-grid">
+              {sharedEssays.map((shared) => (
+                <div
+                  key={shared.id}
+                  className="essay-card essay-card-shared"
+                  onClick={() => onSelectSharedEssay(shared.ownerUid, shared.essayId, shared.permission)}
+                >
+                  <div className="essay-card-title">
+                    {shared.title || 'Untitled Essay'}
+                  </div>
+                  <div className="essay-card-owner">
+                    From: {shared.ownerDisplayName || shared.ownerEmail}
+                  </div>
+                  <div className="essay-card-permission">
+                    {shared.permission === 'editor' ? 'Can edit' : 'View only'}
+                  </div>
                 </div>
               ))}
             </div>

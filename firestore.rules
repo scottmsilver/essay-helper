@@ -1,8 +1,77 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if user is the owner
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Helper to check if essay is public
+    function isPublic(essayData) {
+      return essayData.sharing != null && essayData.sharing.isPublic == true;
+    }
+
+    // Helper to check if essay allows public editing
+    function isPublicEditor(essayData) {
+      return isPublic(essayData) && essayData.sharing.publicPermission == 'editor';
+    }
+
+    // Helper to check if user email is in collaborators list
+    function isCollaboratorEmail(essayData) {
+      return request.auth != null &&
+             essayData.sharing != null &&
+             essayData.sharing.collaboratorEmails != null &&
+             request.auth.token.email in essayData.sharing.collaboratorEmails;
+    }
+
+    // Helper to check if user is an editor
+    function isEditorEmail(essayData) {
+      return request.auth != null &&
+             essayData.sharing != null &&
+             essayData.sharing.editorEmails != null &&
+             request.auth.token.email in essayData.sharing.editorEmails;
+    }
+
+    // User essays collection
     match /users/{userId}/essays/{essayId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Owner has full access
+      allow read, write: if isOwner(userId);
+
+      // Collaborators can read
+      allow read: if isCollaboratorEmail(resource.data);
+
+      // Editors can update (except sharing field)
+      allow update: if isEditorEmail(resource.data) &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['sharing']);
+
+      // Public essays can be read by anyone
+      allow read: if isPublic(resource.data);
+
+      // Public editors can update (except sharing field)
+      allow update: if isPublicEditor(resource.data) &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['sharing']);
+    }
+
+    // Shared with me references - indexed by recipient email (lowercase)
+    // We use email because we don't have the recipient's UID when sharing
+    match /sharedWithMe/{recipientEmail}/essays/{docId} {
+      // User can read their own shared items
+      // Note: recipientEmail in path should be lowercase
+      allow read: if request.auth != null;
+      // Any authenticated user can write (for sharing management)
+      allow write: if request.auth != null;
+    }
+
+    // Public essay lookup - anyone can read, authenticated users can write
+    match /publicEssays/{publicToken} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Essay index for unified URL lookups - anyone can read, authenticated users can write
+    match /essayIndex/{essayId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
   }
 }

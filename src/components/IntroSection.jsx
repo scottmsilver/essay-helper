@@ -11,6 +11,7 @@ export function IntroSection({
   removeClaim,
   sectionCollapsed,
   onToggleSection,
+  readOnly = false,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const rowCount = 3 + intro.claims.length; // hook, background, thesis, + claims
@@ -41,12 +42,14 @@ export function IntroSection({
           value={intro.hook}
           onChange={(value) => updateIntro('hook', value)}
           placeholder="How will you hook the reader?"
+          readOnly={readOnly}
         />
         <ParagraphCell
           rowSpan={rowCount}
           value={intro.paragraph}
           onChange={(value) => updateIntro('paragraph', value)}
           placeholder="Write your introduction paragraph here, weaving together your hook, background, thesis, and claims..."
+          readOnly={readOnly}
         />
 
         {/* Row 2: Background */}
@@ -55,6 +58,7 @@ export function IntroSection({
           value={intro.background}
           onChange={(value) => updateIntro('background', value)}
           placeholder="What context does the reader need?"
+          readOnly={readOnly}
         />
 
         {/* Row 3: Thesis */}
@@ -63,6 +67,7 @@ export function IntroSection({
           value={intro.thesis}
           onChange={(value) => updateIntro('thesis', value)}
           placeholder="What is the new idea you're arguing is true?"
+          readOnly={readOnly}
         />
 
         {/* Claims rows */}
@@ -77,6 +82,7 @@ export function IntroSection({
             removeClaim={handleRemoveClaim}
             isLast={index === intro.claims.length - 1}
             addClaim={addClaim}
+            readOnly={readOnly}
           />
         ))}
       </div>
@@ -92,8 +98,8 @@ export function IntroSection({
   );
 }
 
-function ClaimRow({ claim, index, thesis, isOnly, updateClaim, removeClaim, isLast, addClaim }) {
-  const actions = (
+function ClaimRow({ claim, index, thesis, isOnly, updateClaim, removeClaim, isLast, addClaim, readOnly = false }) {
+  const actions = !readOnly ? (
     <AddRemoveActions
       canRemove={!isOnly}
       canAdd={isLast}
@@ -102,7 +108,7 @@ function ClaimRow({ claim, index, thesis, isOnly, updateClaim, removeClaim, isLa
       removeTitle="Remove claim"
       addTitle="Add claim"
     />
-  );
+  ) : null;
 
   const thesisText = thesis || '[thesis]';
   return (
@@ -114,6 +120,7 @@ function ClaimRow({ claim, index, thesis, isOnly, updateClaim, removeClaim, isLa
         value={claim.text}
         onChange={(value) => updateClaim(claim.id, value)}
         placeholderContent={<>Claim {index + 1}: Why is <span className="ref">{thesisText}</span> true?</>}
+        readOnly={readOnly}
       />
     </>
   );

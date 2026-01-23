@@ -59,7 +59,7 @@ export function PurposeCell({ label, children, className = '', actions }) {
   );
 }
 
-export function OutlineCell({ value, onChange, placeholder, placeholderContent, className = '' }) {
+export function OutlineCell({ value, onChange, placeholder, placeholderContent, className = '', readOnly = false }) {
   const textareaRef = useAutoResize(value, placeholder);
   const hasContent = value && value.length > 0;
 
@@ -69,8 +69,9 @@ export function OutlineCell({ value, onChange, placeholder, placeholderContent, 
         ref={textareaRef}
         className={`outline-cell ${className}`}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => !readOnly && onChange(e.target.value)}
         placeholder={placeholderContent ? '' : placeholder}
+        readOnly={readOnly}
       />
       {placeholderContent && (
         <div className="outline-placeholder">{placeholderContent}</div>
@@ -79,7 +80,7 @@ export function OutlineCell({ value, onChange, placeholder, placeholderContent, 
   );
 }
 
-export function ParagraphCell({ value, onChange, placeholder, rowSpan }) {
+export function ParagraphCell({ value, onChange, placeholder, rowSpan, readOnly = false }) {
   const textareaRef = useAutoResize(value, placeholder);
   const hasContent = value && value.trim().length > 0;
 
@@ -92,8 +93,9 @@ export function ParagraphCell({ value, onChange, placeholder, rowSpan }) {
         ref={textareaRef}
         className="paragraph-cell"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => !readOnly && onChange(e.target.value)}
         placeholder={placeholder}
+        readOnly={readOnly}
       />
       {hasContent && <CopyButton text={value} />}
     </div>

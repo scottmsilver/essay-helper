@@ -7,6 +7,7 @@ export function ConclusionSection({
   updateConclusion,
   sectionCollapsed,
   onToggleSection,
+  readOnly = false,
 }) {
   const rowCount = 2; // restatement + so what
 
@@ -26,12 +27,14 @@ export function ConclusionSection({
           value={conclusion.restatement || ''}
           onChange={(value) => updateConclusion('restatement', value)}
           placeholderContent={<>How will you restate <span className="ref">{thesisText}</span> and your claims ({claimTexts.map((ct, i) => <span key={i}><span className="ref">{ct}</span>{i < claimTexts.length - 1 ? ', ' : ''}</span>)}) in your own words?</>}
+          readOnly={readOnly}
         />
         <ParagraphCell
           rowSpan={rowCount}
           value={conclusion.paragraph}
           onChange={(value) => updateConclusion('paragraph', value)}
           placeholder={`Write your conclusion restating "${thesis || '[thesis]'}" and explaining why it matters...`}
+          readOnly={readOnly}
         />
 
         {/* Row 2: So What */}
@@ -42,6 +45,7 @@ export function ConclusionSection({
           value={conclusion.soWhat}
           onChange={(value) => updateConclusion('soWhat', value)}
           placeholderContent={<>What are the future implications of <span className="ref">{thesisText}</span> being true?</>}
+          readOnly={readOnly}
         />
       </div>
     </div>

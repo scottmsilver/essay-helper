@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { CopyButton } from './CopyButton';
+import { ShareButton } from './ShareButton';
 import { formatRelativeDate } from '../utils/formatDate';
 
 export function Header({
@@ -11,6 +12,9 @@ export function Header({
   onRenameEssay,
   onGoHome,
   showEditor,
+  onShareClick,
+  isSharedEssay,
+  permissionBadge,
 }) {
   const { user, loading, signIn, signOut } = useAuth();
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
@@ -85,7 +89,7 @@ export function Header({
 
         {showEditor && (
           <div className="title-area">
-            {isEditingTitle ? (
+            {isEditingTitle && !permissionBadge ? (
               <input
                 ref={titleInputRef}
                 type="text"
@@ -97,11 +101,18 @@ export function Header({
                 placeholder="Essay title..."
               />
             ) : (
-              <button className="title-btn" onClick={handleTitleClick}>
+              <button
+                className="title-btn"
+                onClick={permissionBadge ? undefined : handleTitleClick}
+                style={permissionBadge ? { cursor: 'default' } : undefined}
+              >
                 {currentTitle || 'Untitled'}
               </button>
             )}
-            {lastSaved && (
+            {permissionBadge && (
+              <span className="permission-badge">{permissionBadge}</span>
+            )}
+            {lastSaved && !permissionBadge && (
               <span className="last-saved">Saved {formatRelativeDate(lastSaved)}</span>
             )}
           </div>
@@ -109,6 +120,9 @@ export function Header({
       </div>
 
       <div className="header-actions">
+        {showEditor && !isSharedEssay && onShareClick && (
+          <ShareButton onClick={onShareClick} className="share-btn-header" />
+        )}
         {showEditor && (
           <CopyButton text={getFullEssayText(essay)} title="Copy Full Essay" className="copy-btn-header" />
         )}
