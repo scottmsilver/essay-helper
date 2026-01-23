@@ -1,0 +1,9 @@
+# Dependencies
+node_modules/
+
+# Local env files
+*.local
+
+# Logs
+firebase-debug.log
+firebase-debug.*.log
