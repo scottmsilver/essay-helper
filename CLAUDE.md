@@ -60,8 +60,6 @@ Strict TypeScript is enforced:
 
 Tests use Vitest with jsdom environment and React Testing Library. Test files live alongside source files (e.g., `Component.test.tsx`).
 
-## Known Issues
+## Storage Layer
 
-See `ISSUES.md` for documented technical debt:
-1. Firestore `Timestamp` type leaks into hook layer instead of being normalized to `Date` at storage boundary
-2. Change detection uses `JSON.stringify` comparison which is fragile with non-JSON-safe types
+The Firebase storage layer normalizes all Firestore `Timestamp` values to JavaScript `Date` objects at the boundary. This keeps Firebase-specific types contained within `src/firebase/`. Change detection uses `serializeEssay()` from `src/utils/essayEquals.ts`.
