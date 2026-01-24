@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
-import { useEssayUpdates, createClaim, createBodyParagraph, generateId } from './useEssayUpdates';
+import { useEssayUpdates } from './useEssayUpdates';
+import { createEssay, generateId, getClaimById as modelGetClaimById } from '../models/essay';
 import {
   listEssays,
   getEssay,
@@ -15,24 +16,6 @@ import {
 } from '../firebase/firestore';
 
 const STORAGE_KEY = 'essay-helper-data';
-
-const createInitialEssay = () => {
-  const claim1 = createClaim('');
-  return {
-    intro: {
-      hook: '',
-      background: '',
-      thesis: '',
-      claims: [claim1],
-      paragraph: '',
-    },
-    bodyParagraphs: [createBodyParagraph(claim1)],
-    conclusion: {
-      soWhat: '',
-      paragraph: '',
-    },
-  };
-};
 
 const loadLocalEssay = () => {
   try {
@@ -64,7 +47,7 @@ const clearLocalEssay = () => {
 
 export function useEssay() {
   const { user, loading: authLoading } = useAuth();
-  const [essay, setEssay] = useState(createInitialEssay);
+  const [essay, setEssay] = useState(createEssay);
   const [essays, setEssays] = useState([]);
   const [currentEssayId, setCurrentEssayId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -123,7 +106,7 @@ export function useEssay() {
           } else if (userEssays.length > 0) {
             const firstEssay = userEssays[0];
             setCurrentEssayId(firstEssay.id);
-            const essayData = firstEssay.data || createInitialEssay();
+            const essayData = firstEssay.data || createEssay();
             setEssay(essayData);
             lastSavedEssayRef.current = JSON.stringify(essayData);
             // Set lastSavedAt from Firestore timestamp
@@ -132,19 +115,19 @@ export function useEssay() {
           } else {
             const newId = generateId();
             setCurrentEssayId(newId);
-            const newEssay = createInitialEssay();
+            const newEssay = createEssay();
             setEssay(newEssay);
             lastSavedEssayRef.current = JSON.stringify(newEssay);
             setLastSavedAt(null); // New essay, not saved yet
           }
         } catch (error) {
           console.error('Failed to load essays:', error);
-          setEssay(loadLocalEssay() || createInitialEssay());
+          setEssay(loadLocalEssay() || createEssay());
         }
       } else {
         setEssays([]);
         setCurrentEssayId(null);
-        const localData = loadLocalEssay() || createInitialEssay();
+        const localData = loadLocalEssay() || createEssay();
         setEssay(localData);
         lastSavedEssayRef.current = JSON.stringify(localData);
       }
@@ -336,7 +319,7 @@ export function useEssay() {
   const handleSkipMigration = useCallback(() => {
     const newId = generateId();
     setCurrentEssayId(newId);
-    setEssay(createInitialEssay());
+    setEssay(createEssay());
     setShowMigrationPrompt(false);
     localEssayRef.current = null;
     clearLocalEssay();
@@ -361,7 +344,7 @@ export function useEssay() {
         const essayData = await getEssay(user.uid, essayId);
         if (essayData) {
           setCurrentEssayId(essayId);
-          const loadedData = essayData.data || createInitialEssay();
+          const loadedData = essayData.data || createEssay();
           setEssay(loadedData);
           lastSavedEssayRef.current = JSON.stringify(loadedData);
           // Set lastSavedAt from loaded essay's timestamp
@@ -370,7 +353,7 @@ export function useEssay() {
         } else {
           // Essay doesn't exist yet (newly created), just set the ID
           setCurrentEssayId(essayId);
-          const newEssay = createInitialEssay();
+          const newEssay = createEssay();
           setEssay(newEssay);
           lastSavedEssayRef.current = JSON.stringify(newEssay);
           setLastSavedAt(null);
@@ -379,7 +362,7 @@ export function useEssay() {
         console.error('Failed to load essay:', error);
         // Still set the ID so user can work on a new essay
         setCurrentEssayId(essayId);
-        const newEssay = createInitialEssay();
+        const newEssay = createEssay();
         setEssay(newEssay);
         lastSavedEssayRef.current = JSON.stringify(newEssay);
         setLastSavedAt(null);
@@ -400,7 +383,7 @@ export function useEssay() {
         const essayData = await getSharedEssay(ownerUid, essayId);
         if (essayData) {
           setCurrentEssayId(essayId);
-          const loadedData = essayData.data || createInitialEssay();
+          const loadedData = essayData.data || createEssay();
           setEssay(loadedData);
           lastSavedEssayRef.current = JSON.stringify(loadedData);
           const savedTime = essayData.updatedAt?.toDate?.() || essayData.updatedAt || new Date();
@@ -481,7 +464,7 @@ export function useEssay() {
   // Create new essay
   const createNewEssay = useCallback(() => {
     const newId = generateId();
-    const newEssay = createInitialEssay();
+    const newEssay = createEssay();
     setCurrentEssayId(newId);
     setEssay(newEssay);
     lastSavedEssayRef.current = JSON.stringify(newEssay);
@@ -558,8 +541,8 @@ export function useEssay() {
 
   // Get claim by ID
   const getClaimById = useCallback(
-    (claimId) => essay.intro.claims.find((c) => c.id === claimId),
-    [essay.intro.claims]
+    (claimId) => modelGetClaimById(essay, claimId),
+    [essay]
   );
 
   // Reset essay
@@ -567,7 +550,7 @@ export function useEssay() {
     if (user) {
       createNewEssay();
     } else {
-      const newEssay = createInitialEssay();
+      const newEssay = createEssay();
       setEssay(newEssay);
       saveLocalEssay(newEssay);
       lastSavedEssayRef.current = JSON.stringify(newEssay);

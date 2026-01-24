@@ -3,23 +3,13 @@ import { Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
 import { useEssay } from './hooks/useEssay';
 import { useEssayUpdates } from './hooks/useEssayUpdates';
 import { useAuth } from './hooks/useAuth';
+import { getFullEssayText } from './models/essay';
 import { IntroSection, BodySection, ConclusionSection, ShareDialog } from './components';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { MigrationPrompt } from './components/MigrationPrompt';
 import { getEssayWithPermissions, savePublicEssay } from './firebase/firestore';
 import './App.css';
-
-function getFullEssayText(essay) {
-  return [
-    essay.intro.paragraph,
-    ...essay.bodyParagraphs.map(b => b.paragraph),
-    essay.conclusion.paragraph,
-  ]
-    .map(p => p?.trim())
-    .filter(Boolean)
-    .join('\n\n');
-}
 
 const COLLAPSED_STORAGE_KEY = 'essay-helper-collapsed-sections';
 
