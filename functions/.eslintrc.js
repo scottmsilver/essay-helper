@@ -21,6 +21,9 @@ module.exports = {
     curly: ["error", "all"],
     "no-throw-literal": "error",
     "no-return-await": "error",
+    // Disable deprecated rules from google config (removed in ESLint 9)
+    "valid-jsdoc": "off",
+    "require-jsdoc": "off",
   },
   overrides: [
     {
