@@ -18,9 +18,15 @@ jobs:
       with:
         node-version-file: functions/.nvmrc
         cache: npm
-        cache-dependency-path: functions/package-lock.json
-    - name: Install dependencies
+        cache-dependency-path: 'functions/package-lock.json
+
+          package-lock.json
+
+          '
+    - name: Install functions dependencies
       working-directory: functions
+      run: npm ci
+    - name: Install root dependencies
       run: npm ci
     - name: Run linter
       working-directory: functions
