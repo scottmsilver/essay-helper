@@ -20,9 +20,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Allow JS files during migration */
-    "allowJs": true,
-    "checkJs": false
+    /* Strict TypeScript - no JS files */
+    "allowJs": false
   },
   "include": ["src"]
 }

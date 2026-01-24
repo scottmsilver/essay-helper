@@ -118,7 +118,6 @@ body {
 /* Header row */
 .header-row {
   display: grid;
-  grid-template-columns: 40px 200px 1fr 1fr;
   background-color: #4a4a4a;
   color: white;
   font-weight: bold;
@@ -173,15 +172,33 @@ body {
 .essay-grid.outline-collapsed { --col-outline: 40px; }
 .essay-grid.paragraph-collapsed { --col-paragraph: 40px; }
 
-/* When both outline and paragraph are collapsed, shrink grid to fit */
-.essay-grid.outline-collapsed.paragraph-collapsed {
+/* When any flexible column is collapsed, constrain width */
+.essay-grid.outline-collapsed,
+.essay-grid.paragraph-collapsed {
   width: fit-content;
+  max-width: 100%;
 }
 
 /* Apply grid columns via custom properties */
 .essay-grid .header-row,
 .essay-grid .section-grid {
   grid-template-columns: var(--col-label) var(--col-purpose) var(--col-outline) var(--col-paragraph);
+}
+
+/* Explicit collapsed column rules for better browser support */
+.essay-grid.paragraph-collapsed .header-row,
+.essay-grid.paragraph-collapsed .section-grid {
+  grid-template-columns: var(--col-label) var(--col-purpose) var(--col-outline) 40px;
+}
+
+.essay-grid.outline-collapsed .header-row,
+.essay-grid.outline-collapsed .section-grid {
+  grid-template-columns: var(--col-label) var(--col-purpose) 40px var(--col-paragraph);
+}
+
+.essay-grid.outline-collapsed.paragraph-collapsed .header-row,
+.essay-grid.outline-collapsed.paragraph-collapsed .section-grid {
+  grid-template-columns: var(--col-label) var(--col-purpose) 40px 40px;
 }
 
 /* Hide content in collapsed columns */
