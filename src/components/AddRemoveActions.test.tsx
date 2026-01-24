@@ -10,6 +10,7 @@ describe('AddRemoveActions', () => {
         canAdd={true}
         onRemove={() => {}}
         onAdd={() => {}}
+        removeTitle="Remove item"
         addTitle="Add item"
       />
     );
@@ -24,6 +25,7 @@ describe('AddRemoveActions', () => {
         onRemove={() => {}}
         onAdd={() => {}}
         removeTitle="Remove item"
+        addTitle="Add item"
       />
     );
     expect(screen.getByTitle('Remove item')).toBeInTheDocument();
@@ -36,6 +38,7 @@ describe('AddRemoveActions', () => {
         canAdd={false}
         onRemove={() => {}}
         onAdd={() => {}}
+        removeTitle="Remove item"
         addTitle="Add item"
       />
     );
@@ -50,6 +53,7 @@ describe('AddRemoveActions', () => {
         onRemove={() => {}}
         onAdd={() => {}}
         removeTitle="Remove item"
+        addTitle="Add item"
       />
     );
     expect(screen.queryByTitle('Remove item')).not.toBeInTheDocument();
@@ -63,6 +67,7 @@ describe('AddRemoveActions', () => {
         canAdd={true}
         onRemove={() => {}}
         onAdd={onAdd}
+        removeTitle="Remove item"
         addTitle="Add item"
       />
     );
@@ -79,6 +84,7 @@ describe('AddRemoveActions', () => {
         onRemove={onRemove}
         onAdd={() => {}}
         removeTitle="Remove item"
+        addTitle="Add item"
       />
     );
     fireEvent.click(screen.getByTitle('Remove item'));

@@ -1,19 +1,27 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
+import { User } from 'firebase/auth';
 import { useEssay } from './hooks/useEssay';
 import { useEssayUpdates } from './hooks/useEssayUpdates';
 import { useAuth } from './hooks/useAuth';
-import { getFullEssayText } from './models/essay';
+import { getFullEssayText, Essay, createEssay, Claim, Intro, BodyParagraph, Conclusion, ProofBlock } from './models/essay';
 import { IntroSection, BodySection, ConclusionSection, ShareDialog } from './components';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { MigrationPrompt } from './components/MigrationPrompt';
-import { getEssayWithPermissions, savePublicEssay } from './firebase/firestore';
+import { getEssayWithPermissions, savePublicEssay, EssayDocument, SharingInfo, Permission, SharedEssayRef } from './firebase/firestore';
 import './App.css';
 
 const COLLAPSED_STORAGE_KEY = 'essay-helper-collapsed-sections';
 
-function loadCollapsedState() {
+interface CollapsedState {
+  purpose?: boolean;
+  outline?: boolean;
+  paragraph?: boolean;
+  sections?: Record<string, boolean>;
+}
+
+function loadCollapsedState(): CollapsedState {
   try {
     const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY);
     if (stored) {
@@ -25,7 +33,7 @@ function loadCollapsedState() {
   return { sections: {} };
 }
 
-function saveCollapsedState(state) {
+function saveCollapsedState(state: CollapsedState): void {
   try {
     localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
@@ -33,65 +41,63 @@ function saveCollapsedState(state) {
   }
 }
 
-// Component for editing external essays (shared or public with edit permission)
-function ExternalEssayEditor({ externalEssay, externalPermission, externalOwnerUid }) {
+interface ExternalEssayEditorProps {
+  externalEssay: EssayDocument;
+  externalPermission: Permission;
+  externalOwnerUid: string;
+}
+
+function ExternalEssayEditor({ externalEssay, externalPermission, externalOwnerUid }: ExternalEssayEditorProps) {
   const isEditor = externalPermission === 'editor';
-  const saveTimeoutRef = useRef(null);
-  const [lastSaved, setLastSaved] = useState(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Initialize local essay state
-  const [essay, setEssay] = useState(() => externalEssay.data || {
-    intro: { hook: '', background: '', thesis: '', claims: [], paragraph: '' },
-    bodyParagraphs: [],
-    conclusion: { soWhat: '', paragraph: '' },
-  });
+  const [essay, setEssay] = useState<Essay>(() => externalEssay.data || createEssay());
 
-  // Auto-save function
-  const saveEssay = useCallback(async (essayData) => {
-    if (!isEditor || !externalOwnerUid || !externalEssay?.id) return;
+  const saveEssay = useCallback(
+    async (essayData: Essay) => {
+      if (!isEditor || !externalOwnerUid || !externalEssay?.id) return;
 
-    setIsSaving(true);
-    try {
-      await savePublicEssay(externalOwnerUid, externalEssay.id, essayData, externalEssay.title);
-      setLastSaved(new Date());
-    } catch (err) {
-      console.error('Failed to save:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [isEditor, externalOwnerUid, externalEssay]);
+      setIsSaving(true);
+      try {
+        await savePublicEssay(externalOwnerUid, externalEssay.id, essayData, externalEssay.title);
+        setLastSaved(new Date());
+      } catch (err) {
+        console.error('Failed to save:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [isEditor, externalOwnerUid, externalEssay]
+  );
 
-  // Debounced save trigger
-  const triggerSave = useCallback((essayData) => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    saveTimeoutRef.current = setTimeout(() => saveEssay(essayData), 2000);
-  }, [saveEssay]);
+  const triggerSave = useCallback(
+    (essayData: Essay) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => saveEssay(essayData), 2000);
+    },
+    [saveEssay]
+  );
 
-  // Callback to trigger save after each update (only if editor)
-  const handleUpdate = useCallback((updatedEssay) => {
-    if (isEditor) triggerSave(updatedEssay);
-  }, [isEditor, triggerSave]);
+  const handleUpdate = useCallback(
+    (updatedEssay: Essay) => {
+      if (isEditor) triggerSave(updatedEssay);
+    },
+    [isEditor, triggerSave]
+  );
 
-  // Use the shared essay update functions with auto-save callback
-  const {
-    updateIntro,
-    updateClaim,
-    updateBodyParagraph,
-    updateProofBlock,
-    updateConclusion,
-  } = useEssayUpdates(setEssay, handleUpdate);
+  const { updateIntro, updateClaim, updateBodyParagraph, updateProofBlock, updateConclusion } =
+    useEssayUpdates(setEssay, handleUpdate);
 
-  const getClaimById = useCallback((claimId) =>
-    essay.intro?.claims?.find(c => c.id === claimId),
-  [essay.intro?.claims]);
+  const getClaimById = useCallback(
+    (claimId: string) => essay.intro?.claims?.find((c) => c.id === claimId),
+    [essay.intro?.claims]
+  );
 
-  // Compute badge text
-  const permissionBadge = isEditor
-    ? (isSaving ? 'Saving...' : lastSaved ? 'Saved' : 'Can Edit')
-    : 'View Only';
+  const permissionBadge = isEditor ? (isSaving ? 'Saving...' : lastSaved ? 'Saved' : 'Can Edit') : 'View Only';
 
   return (
     <EssayEditor
@@ -110,15 +116,40 @@ function ExternalEssayEditor({ externalEssay, externalPermission, externalOwnerU
       updateConclusion={updateConclusion}
       getClaimById={getClaimById}
       renameEssay={() => {}}
-      selectEssay={() => {}}
+      selectEssay={() => Promise.resolve()}
       sharingInfo={null}
       isSharedEssay={true}
-      loadSharingInfo={() => {}}
-      saveSharing={() => {}}
+      loadSharingInfo={() => Promise.resolve()}
+      saveSharing={() => Promise.resolve()}
       readOnly={!isEditor}
       permissionBadge={permissionBadge}
     />
   );
+}
+
+interface EssayEditorProps {
+  essay: Essay;
+  currentEssayId: string | null;
+  lastSaved: Date | null;
+  currentTitle: string;
+  updateIntro: (field: keyof Intro, value: Intro[keyof Intro]) => void;
+  addClaim: () => void;
+  updateClaim: (claimId: string, text: string) => void;
+  removeClaim: (claimId: string) => void;
+  updateBodyParagraph: (bodyId: string, field: keyof BodyParagraph, value: BodyParagraph[keyof BodyParagraph]) => void;
+  addProofBlock: (bodyId: string) => void;
+  updateProofBlock: (bodyId: string, proofBlockId: string, field: keyof ProofBlock, value: string) => void;
+  removeProofBlock: (bodyId: string, proofBlockId: string) => void;
+  updateConclusion: (field: keyof Conclusion, value: string) => void;
+  getClaimById: (claimId: string) => Claim | undefined;
+  renameEssay: (essayId: string, newTitle: string) => void;
+  selectEssay: (essayId: string) => Promise<void>;
+  sharingInfo: SharingInfo | null;
+  isSharedEssay: boolean;
+  loadSharingInfo: () => Promise<void>;
+  saveSharing: (params: { collaborators: SharingInfo['collaborators']; isPublic: boolean; publicPermission: 'viewer' | 'editor' }) => Promise<void>;
+  readOnly?: boolean;
+  permissionBadge?: string | null;
 }
 
 function EssayEditor({
@@ -144,14 +175,13 @@ function EssayEditor({
   saveSharing,
   readOnly = false,
   permissionBadge = null,
-}) {
+}: EssayEditorProps) {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [collapsedState, setCollapsedState] = useState(loadCollapsedState);
+  const { id } = useParams<{ id: string }>();
+  const [collapsedState, setCollapsedState] = useState<CollapsedState>(loadCollapsedState);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [sharingLoading, setSharingLoading] = useState(false);
 
-  // Load sharing info when essay changes
   useEffect(() => {
     if (!currentEssayId || isSharedEssay || !loadSharingInfo) return;
 
@@ -165,14 +195,14 @@ function EssayEditor({
       }
     };
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [currentEssayId, isSharedEssay, loadSharingInfo]);
 
-  // Column collapse state
   const purposeCollapsed = collapsedState.purpose ?? false;
   const outlineCollapsed = collapsedState.outline ?? false;
   const paragraphCollapsed = collapsedState.paragraph ?? false;
-
 
   useEffect(() => {
     if (id && id !== currentEssayId) {
@@ -180,26 +210,25 @@ function EssayEditor({
     }
   }, [id, currentEssayId, selectEssay]);
 
-  const handleRenameEssay = (newTitle) => {
+  const handleRenameEssay = (newTitle: string) => {
     if (currentEssayId) {
       renameEssay(currentEssayId, newTitle);
     }
   };
 
-  // Generic toggle function for columns and sections
-  const toggleCollapse = (key, isSection = false) => {
-    let newState;
+  const toggleCollapse = (key: string, isSection = false) => {
+    let newState: CollapsedState;
     if (isSection) {
       const newSections = { ...collapsedState.sections, [key]: !(collapsedState.sections?.[key] ?? false) };
       newState = { ...collapsedState, sections: newSections };
     } else {
-      newState = { ...collapsedState, [key]: !collapsedState[key] };
+      newState = { ...collapsedState, [key]: !collapsedState[key as keyof CollapsedState] };
     }
     setCollapsedState(newState);
     saveCollapsedState(newState);
   };
 
-  const isSectionCollapsed = (sectionKey) => collapsedState.sections?.[sectionKey] ?? false;
+  const isSectionCollapsed = (sectionKey: string) => collapsedState.sections?.[sectionKey] ?? false;
 
   return (
     <>
@@ -227,15 +256,28 @@ function EssayEditor({
         />
       )}
 
-      <main className={['essay-grid', purposeCollapsed && 'purpose-collapsed', outlineCollapsed && 'outline-collapsed', paragraphCollapsed && 'paragraph-collapsed'].filter(Boolean).join(' ')}>
+      <main
+        className={[
+          'essay-grid',
+          purposeCollapsed && 'purpose-collapsed',
+          outlineCollapsed && 'outline-collapsed',
+          paragraphCollapsed && 'paragraph-collapsed',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
         <div className="header-row">
           <div className="header-cell"></div>
           {[
             { key: 'purpose', label: 'Purpose', short: 'P', collapsed: purposeCollapsed },
             { key: 'outline', label: 'Outline', short: 'O', collapsed: outlineCollapsed },
             { key: 'paragraph', label: 'Paragraph', short: '¶', collapsed: paragraphCollapsed },
-          ].map(col => (
-            <div key={col.key} className="header-cell header-cell-collapsible" onClick={() => toggleCollapse(col.key)}>
+          ].map((col) => (
+            <div
+              key={col.key}
+              className="header-cell header-cell-collapsible"
+              onClick={() => toggleCollapse(col.key)}
+            >
               <span>{col.collapsed ? col.short : col.label}</span>
               <span className="column-collapse-icon">▼</span>
             </div>
@@ -284,9 +326,32 @@ function EssayEditor({
   );
 }
 
-// Unified essay route that handles owner, shared, and public access
+interface UnifiedEssayRouteProps {
+  essay: Essay;
+  essays: EssayDocument[];
+  currentEssayId: string | null;
+  lastSaved: Date | null;
+  currentTitle: string;
+  updateIntro: (field: keyof Intro, value: Intro[keyof Intro]) => void;
+  addClaim: () => void;
+  updateClaim: (claimId: string, text: string) => void;
+  removeClaim: (claimId: string) => void;
+  updateBodyParagraph: (bodyId: string, field: keyof BodyParagraph, value: BodyParagraph[keyof BodyParagraph]) => void;
+  addProofBlock: (bodyId: string) => void;
+  updateProofBlock: (bodyId: string, proofBlockId: string, field: keyof ProofBlock, value: string) => void;
+  removeProofBlock: (bodyId: string, proofBlockId: string) => void;
+  updateConclusion: (field: keyof Conclusion, value: string) => void;
+  getClaimById: (claimId: string) => Claim | undefined;
+  renameEssay: (essayId: string, newTitle: string) => Promise<void>;
+  selectEssay: (essayId: string) => Promise<void>;
+  sharingInfo: SharingInfo | null;
+  isSharedEssay: boolean;
+  loadSharingInfo: () => Promise<void>;
+  saveSharing: (params: { collaborators: SharingInfo['collaborators']; isPublic: boolean; publicPermission: 'viewer' | 'editor' }) => Promise<void>;
+  user: User | null;
+}
+
 function UnifiedEssayRoute({
-  // Props for owner/shared editor mode
   essay,
   essays,
   currentEssayId,
@@ -309,25 +374,23 @@ function UnifiedEssayRoute({
   loadSharingInfo,
   saveSharing,
   user,
-}) {
-  const { id } = useParams();
-  const [externalEssay, setExternalEssay] = useState(null);
-  const [externalPermission, setExternalPermission] = useState(null);
-  const [externalOwnerUid, setExternalOwnerUid] = useState(null);
+}: UnifiedEssayRouteProps) {
+  const { id } = useParams<{ id: string }>();
+  const [externalEssay, setExternalEssay] = useState<EssayDocument | null>(null);
+  const [externalPermission, setExternalPermission] = useState<Permission | null>(null);
+  const [externalOwnerUid, setExternalOwnerUid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadEssay = async () => {
+      if (!id) return;
+
       setLoading(true);
       setError(null);
 
-      // If user is logged in, assume they might own this essay
-      // Let the EssayEditor/selectEssay handle loading - it knows how to load user's essays
       if (user) {
-        // Check if this essay is in the user's essays list
-        if (essays && essays.some(e => e.id === id)) {
-          // User owns this essay - use owner flow
+        if (essays && essays.some((e) => e.id === id)) {
           setExternalEssay(null);
           setExternalPermission(null);
           setExternalOwnerUid(null);
@@ -335,18 +398,14 @@ function UnifiedEssayRoute({
           return;
         }
 
-        // Essay not in user's list - could be shared or public
-        // Try unified permissions, but handle errors gracefully
         try {
           const result = await getEssayWithPermissions(id, user.uid, user.email);
           if (result.essay) {
             if (result.permission === 'owner') {
-              // User owns it (found via index) - use owner flow
               setExternalEssay(null);
               setExternalPermission(null);
               setExternalOwnerUid(null);
             } else {
-              // Shared or public access
               setExternalEssay(result.essay);
               setExternalPermission(result.permission);
               setExternalOwnerUid(result.ownerUid);
@@ -355,11 +414,9 @@ function UnifiedEssayRoute({
             return;
           }
         } catch (err) {
-          console.log('Permission check failed, trying as owner:', err.message);
+          console.log('Permission check failed, trying as owner:', (err as Error).message);
         }
 
-        // Fallback: assume user owns it and let selectEssay handle it
-        // This handles essays without essayIndex entries
         setExternalEssay(null);
         setExternalPermission(null);
         setExternalOwnerUid(null);
@@ -367,7 +424,6 @@ function UnifiedEssayRoute({
         return;
       }
 
-      // Not logged in - must be public access
       try {
         const result = await getEssayWithPermissions(id, null, null);
         if (result.essay && result.permission) {
@@ -377,16 +433,14 @@ function UnifiedEssayRoute({
         } else {
           setError('Essay not found or is not public');
         }
-      } catch (err) {
+      } catch {
         setError('Essay not found or is not public');
       }
 
       setLoading(false);
     };
 
-    if (id) {
-      loadEssay();
-    }
+    loadEssay();
   }, [id, user, essays]);
 
   if (loading) {
@@ -403,14 +457,15 @@ function UnifiedEssayRoute({
         <div className="public-essay-error">
           <h2>Oops!</h2>
           <p>{error}</p>
-          <Link to="/" className="btn-go-home">Go to Essay Helper</Link>
+          <Link to="/" className="btn-go-home">
+            Go to Essay Helper
+          </Link>
         </div>
       </div>
     );
   }
 
-  // External access (shared or public) - use the same editor but with permission restrictions
-  if (externalEssay && externalPermission) {
+  if (externalEssay && externalPermission && externalOwnerUid) {
     return (
       <ExternalEssayEditor
         externalEssay={externalEssay}
@@ -420,7 +475,6 @@ function UnifiedEssayRoute({
     );
   }
 
-  // Owner access - use full editor
   return (
     <EssayEditor
       essay={essay}
@@ -447,14 +501,30 @@ function UnifiedEssayRoute({
   );
 }
 
-function HomePageWrapper({ essays, sharedEssays, onNewEssay, deleteEssay, selectSharedEssay, isLoggedIn }) {
+interface HomePageWrapperProps {
+  essays: EssayDocument[];
+  sharedEssays: SharedEssayRef[];
+  onNewEssay: () => string;
+  deleteEssay: (essayId: string) => Promise<void>;
+  selectSharedEssay: (ownerUid: string, essayId: string, permission: Permission) => Promise<void>;
+  isLoggedIn: boolean;
+}
+
+function HomePageWrapper({
+  essays,
+  sharedEssays,
+  onNewEssay,
+  deleteEssay,
+  selectSharedEssay,
+  isLoggedIn,
+}: HomePageWrapperProps) {
   const navigate = useNavigate();
 
-  const handleSelectEssay = (essayId) => {
+  const handleSelectEssay = (essayId: string) => {
     navigate(`/essay/${essayId}`);
   };
 
-  const handleSelectSharedEssay = async (ownerUid, essayId, permission) => {
+  const handleSelectSharedEssay = async (ownerUid: string, essayId: string, permission: Permission) => {
     await selectSharedEssay(ownerUid, essayId, permission);
     navigate(`/essay/${essayId}`);
   };
@@ -476,7 +546,7 @@ function HomePageWrapper({ essays, sharedEssays, onNewEssay, deleteEssay, select
         onRenameEssay={() => {}}
         onGoHome={() => {}}
         showEditor={false}
-        onShareClick={() => {}}
+        onShareClick={null}
         isSharedEssay={false}
       />
       <HomePage
@@ -520,7 +590,6 @@ function App() {
     renameEssay,
     handleMigrate,
     handleSkipMigration,
-    // Sharing-related
     sharedEssays,
     sharingInfo,
     isSharedEssay,
@@ -531,8 +600,7 @@ function App() {
 
   const currentEssay = essays?.find((e) => e.id === currentEssayId);
   const currentTitle = currentEssay?.title || 'Untitled';
-  // Use lastSavedAt from hook, fall back to essay's updatedAt for initial load
-  const lastSaved = lastSavedAt || currentEssay?.updatedAt;
+  const lastSaved = lastSavedAt || (currentEssay?.updatedAt as Date) || null;
 
   if (loading) {
     return (
@@ -547,16 +615,13 @@ function App() {
       {saveError && (
         <div className="save-error-banner">
           <span>{saveError}</span>
-          <button onClick={dismissSaveError} className="save-error-dismiss">×</button>
+          <button onClick={dismissSaveError} className="save-error-dismiss">
+            ×
+          </button>
         </div>
       )}
 
-      {showMigrationPrompt && (
-        <MigrationPrompt
-          onMigrate={handleMigrate}
-          onSkip={handleSkipMigration}
-        />
-      )}
+      {showMigrationPrompt && <MigrationPrompt onMigrate={handleMigrate} onSkip={handleSkipMigration} />}
 
       <Routes>
         <Route

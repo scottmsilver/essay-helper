@@ -1,8 +1,8 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, ReactNode, ChangeEvent, RefObject } from 'react';
 import { CopyButton } from './CopyButton';
 
-function useAutoResize(value, placeholder, disabled = false) {
-  const ref = useRef(null);
+function useAutoResize(value: string, _placeholder?: string, disabled = false): RefObject<HTMLTextAreaElement | null> {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     const textarea = ref.current;
@@ -17,10 +17,8 @@ function useAutoResize(value, placeholder, disabled = false) {
       textarea.style.height = textarea.scrollHeight + 'px';
     };
 
-    // Initial resize
     resize();
 
-    // Re-resize when container changes (e.g., column collapse/expand)
     const observer = new ResizeObserver(resize);
     if (textarea.parentElement) {
       observer.observe(textarea.parentElement);
@@ -32,7 +30,14 @@ function useAutoResize(value, placeholder, disabled = false) {
   return ref;
 }
 
-export function SectionLabel({ children, rowSpan, onClick, collapsed }) {
+interface SectionLabelProps {
+  children: ReactNode;
+  rowSpan: number;
+  onClick?: () => void;
+  collapsed?: boolean;
+}
+
+export function SectionLabel({ children, rowSpan, onClick, collapsed }: SectionLabelProps) {
   return (
     <div
       className={`section-label ${onClick ? 'section-label-clickable' : ''} ${collapsed ? 'section-label-collapsed' : ''}`}
@@ -45,7 +50,14 @@ export function SectionLabel({ children, rowSpan, onClick, collapsed }) {
   );
 }
 
-export function PurposeCell({ label, children, className = '', actions }) {
+interface PurposeCellProps {
+  label?: string;
+  children: ReactNode;
+  className?: string;
+  actions?: ReactNode;
+}
+
+export function PurposeCell({ label, children, className = '', actions }: PurposeCellProps) {
   return (
     <div className={`purpose-cell ${className}`}>
       {label && (
@@ -59,41 +71,69 @@ export function PurposeCell({ label, children, className = '', actions }) {
   );
 }
 
-export function OutlineCell({ value, onChange, placeholder, placeholderContent, className = '', readOnly = false }) {
+interface OutlineCellProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  placeholderContent?: ReactNode;
+  className?: string;
+  readOnly?: boolean;
+}
+
+export function OutlineCell({
+  value,
+  onChange,
+  placeholder,
+  placeholderContent,
+  className = '',
+  readOnly = false,
+}: OutlineCellProps) {
   const textareaRef = useAutoResize(value, placeholder);
   const hasContent = value && value.length > 0;
 
   return (
-    <div className={`outline-cell-wrapper ${className} ${hasContent ? 'has-content' : ''}`} data-placeholder={placeholder}>
+    <div
+      className={`outline-cell-wrapper ${className} ${hasContent ? 'has-content' : ''}`}
+      data-placeholder={placeholder}
+    >
       <textarea
         ref={textareaRef}
         className={`outline-cell ${className}`}
         value={value}
-        onChange={(e) => !readOnly && onChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => !readOnly && onChange(e.target.value)}
         placeholder={placeholderContent ? '' : placeholder}
         readOnly={readOnly}
       />
-      {placeholderContent && (
-        <div className="outline-placeholder">{placeholderContent}</div>
-      )}
+      {placeholderContent && <div className="outline-placeholder">{placeholderContent}</div>}
     </div>
   );
 }
 
-export function ParagraphCell({ value, onChange, placeholder, rowSpan, readOnly = false }) {
+interface ParagraphCellProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rowSpan: number;
+  readOnly?: boolean;
+}
+
+export function ParagraphCell({
+  value,
+  onChange,
+  placeholder,
+  rowSpan,
+  readOnly = false,
+}: ParagraphCellProps) {
   const textareaRef = useAutoResize(value, placeholder);
   const hasContent = value && value.trim().length > 0;
 
   return (
-    <div
-      className="paragraph-cell-wrapper"
-      style={{ gridRow: `span ${rowSpan}` }}
-    >
+    <div className="paragraph-cell-wrapper" style={{ gridRow: `span ${rowSpan}` }}>
       <textarea
         ref={textareaRef}
         className="paragraph-cell"
         value={value}
-        onChange={(e) => !readOnly && onChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => !readOnly && onChange(e.target.value)}
         placeholder={placeholder}
         readOnly={readOnly}
       />

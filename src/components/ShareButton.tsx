@@ -1,10 +1,11 @@
-export function ShareButton({ onClick, className = '' }) {
+interface ShareButtonProps {
+  onClick: () => void;
+  className?: string;
+}
+
+export function ShareButton({ onClick, className = '' }: ShareButtonProps) {
   return (
-    <button
-      className={`share-btn ${className}`}
-      onClick={onClick}
-      title="Share essay"
-    >
+    <button className={`share-btn ${className}`} onClick={onClick} title="Share essay">
       <svg
         width="18"
         height="18"

@@ -2,6 +2,18 @@ import { useState } from 'react';
 import { OutlineCell, ParagraphCell, PurposeCell, SectionLabel } from './Cells';
 import { AddRemoveActions } from './AddRemoveActions';
 import { ConfirmDialog } from './ConfirmDialog';
+import type { Intro, Claim } from '../models/essay';
+
+interface IntroSectionProps {
+  intro: Intro;
+  updateIntro: (field: keyof Intro, value: Intro[keyof Intro]) => void;
+  addClaim: () => void;
+  updateClaim: (claimId: string, text: string) => void;
+  removeClaim: (claimId: string) => void;
+  sectionCollapsed: boolean;
+  onToggleSection: () => void;
+  readOnly?: boolean;
+}
 
 export function IntroSection({
   intro,
@@ -12,12 +24,12 @@ export function IntroSection({
   sectionCollapsed,
   onToggleSection,
   readOnly = false,
-}) {
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const rowCount = 3 + intro.claims.length; // hook, background, thesis, + claims
+}: IntroSectionProps) {
+  const [confirmDelete, setConfirmDelete] = useState<{ type: string; id: string } | null>(null);
+  const rowCount = 3 + intro.claims.length;
 
-  const handleRemoveClaim = (claimId) => {
-    const claim = intro.claims.find(c => c.id === claimId);
+  const handleRemoveClaim = (claimId: string) => {
+    const claim = intro.claims.find((c) => c.id === claimId);
     if (claim?.text?.trim()) {
       setConfirmDelete({ type: 'claim', id: claimId });
     } else {
@@ -35,8 +47,9 @@ export function IntroSection({
   return (
     <div className={`section section-intro ${sectionCollapsed ? 'section-collapsed' : ''}`}>
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
-        {/* Row 1: Hook */}
-        <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>Intro</SectionLabel>
+        <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>
+          Intro
+        </SectionLabel>
         <PurposeCell label="Hook">Grab the reader</PurposeCell>
         <OutlineCell
           value={intro.hook}
@@ -52,7 +65,6 @@ export function IntroSection({
           readOnly={readOnly}
         />
 
-        {/* Row 2: Background */}
         <PurposeCell label="Background">Provide context and background</PurposeCell>
         <OutlineCell
           value={intro.background}
@@ -61,7 +73,6 @@ export function IntroSection({
           readOnly={readOnly}
         />
 
-        {/* Row 3: Thesis */}
         <PurposeCell label="Thesis">The new idea that is true</PurposeCell>
         <OutlineCell
           value={intro.thesis}
@@ -70,7 +81,6 @@ export function IntroSection({
           readOnly={readOnly}
         />
 
-        {/* Claims rows */}
         {intro.claims.map((claim, index) => (
           <ClaimRow
             key={claim.id}
@@ -98,7 +108,29 @@ export function IntroSection({
   );
 }
 
-function ClaimRow({ claim, index, thesis, isOnly, updateClaim, removeClaim, isLast, addClaim, readOnly = false }) {
+interface ClaimRowProps {
+  claim: Claim;
+  index: number;
+  thesis: string;
+  isOnly: boolean;
+  updateClaim: (claimId: string, text: string) => void;
+  removeClaim: (claimId: string) => void;
+  isLast: boolean;
+  addClaim: () => void;
+  readOnly?: boolean;
+}
+
+function ClaimRow({
+  claim,
+  index,
+  thesis,
+  isOnly,
+  updateClaim,
+  removeClaim,
+  isLast,
+  addClaim,
+  readOnly = false,
+}: ClaimRowProps) {
   const actions = !readOnly ? (
     <AddRemoveActions
       canRemove={!isOnly}
@@ -119,7 +151,11 @@ function ClaimRow({ claim, index, thesis, isOnly, updateClaim, removeClaim, isLa
       <OutlineCell
         value={claim.text}
         onChange={(value) => updateClaim(claim.id, value)}
-        placeholderContent={<>Claim {index + 1}: Why is <span className="ref">{thesisText}</span> true?</>}
+        placeholderContent={
+          <>
+            Claim {index + 1}: Why is <span className="ref">{thesisText}</span> true?
+          </>
+        }
         readOnly={readOnly}
       />
     </>

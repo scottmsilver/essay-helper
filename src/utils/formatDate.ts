@@ -1,8 +1,17 @@
-export function formatRelativeDate(timestamp) {
+import type { Timestamp } from 'firebase/firestore';
+
+type TimestampLike = Timestamp | Date | string | number | null | undefined;
+
+export function formatRelativeDate(timestamp: TimestampLike): string {
   if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+
+  const date =
+    timestamp && typeof timestamp === 'object' && 'toDate' in timestamp
+      ? timestamp.toDate()
+      : new Date(timestamp as string | number | Date);
+
   const now = new Date();
-  const diffMs = now - date;
+  const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);

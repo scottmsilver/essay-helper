@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, MutableRefObject } from 'react';
+import { Timestamp } from 'firebase/firestore';
 import { useAuth } from './useAuth';
-import { useEssayUpdates } from './useEssayUpdates';
-import { createEssay, generateId, getClaimById as modelGetClaimById } from '../models/essay';
+import { useEssayUpdates, EssayUpdateFunctions } from './useEssayUpdates';
+import { Essay, Claim, createEssay, generateId, getClaimById as modelGetClaimById } from '../models/essay';
 import {
   listEssays,
   getEssay,
@@ -13,61 +14,99 @@ import {
   listSharedWithMe,
   getSharedEssay,
   saveSharedEssay as saveSharedEssayToFirestore,
+  EssayDocument,
+  SharedEssayRef,
+  SharingInfo,
+  Collaborator,
+  Permission,
 } from '../firebase/firestore';
 
 const STORAGE_KEY = 'essay-helper-data';
 
-const loadLocalEssay = () => {
+function loadLocalEssay(): Essay | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      return JSON.parse(stored) as Essay;
     }
   } catch (e) {
     console.error('Failed to load essay from localStorage:', e);
   }
   return null;
-};
+}
 
-const saveLocalEssay = (essay) => {
+function saveLocalEssay(essay: Essay): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(essay));
   } catch (e) {
     console.error('Failed to save essay to localStorage:', e);
   }
-};
+}
 
-const clearLocalEssay = () => {
+function clearLocalEssay(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (e) {
     console.error('Failed to clear localStorage:', e);
   }
-};
+}
 
-export function useEssay() {
+interface SaveSharingParams {
+  collaborators: Collaborator[];
+  isPublic: boolean;
+  publicPermission: 'viewer' | 'editor';
+}
+
+export interface UseEssayReturn extends EssayUpdateFunctions {
+  essay: Essay;
+  essays: EssayDocument[];
+  currentEssayId: string | null;
+  loading: boolean;
+  showMigrationPrompt: boolean;
+  hasUnsavedChanges: boolean;
+  lastSavedAt: Date | null;
+  saveError: string | null;
+  dismissSaveError: () => void;
+  getClaimById: (claimId: string) => Claim | undefined;
+  resetEssay: () => void;
+  selectEssay: (essayId: string) => Promise<void>;
+  createNewEssay: () => string;
+  deleteEssay: (essayId: string) => Promise<void>;
+  renameEssay: (essayId: string, newTitle: string) => Promise<void>;
+  handleMigrate: () => Promise<void>;
+  handleSkipMigration: () => void;
+  sharedEssays: SharedEssayRef[];
+  sharingInfo: SharingInfo | null;
+  isSharedEssay: boolean;
+  sharedEssayPermission: Permission | null;
+  selectSharedEssay: (ownerUid: string, essayId: string, permission: Permission) => Promise<void>;
+  loadSharingInfo: () => Promise<void>;
+  saveSharing: (params: SaveSharingParams) => Promise<void>;
+}
+
+export function useEssay(): UseEssayReturn {
   const { user, loading: authLoading } = useAuth();
-  const [essay, setEssay] = useState(createEssay);
-  const [essays, setEssays] = useState([]);
-  const [currentEssayId, setCurrentEssayId] = useState(null);
+  const [essay, setEssay] = useState<Essay>(createEssay);
+  const [essays, setEssays] = useState<EssayDocument[]>([]);
+  const [currentEssayId, setCurrentEssayId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [saveError, setSaveError] = useState(null);
-  const [sharedEssays, setSharedEssays] = useState([]);
-  const [sharingInfo, setSharingInfo] = useState(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [sharedEssays, setSharedEssays] = useState<SharedEssayRef[]>([]);
+  const [sharingInfo, setSharingInfo] = useState<SharingInfo | null>(null);
   const [isSharedEssay, setIsSharedEssay] = useState(false);
-  const [sharedEssayOwnerUid, setSharedEssayOwnerUid] = useState(null);
-  const [sharedEssayPermission, setSharedEssayPermission] = useState(null);
-  const saveTimeoutRef = useRef(null);
-  const autoSaveIntervalRef = useRef(null);
-  const localEssayRef = useRef(null);
-  const lastSavedEssayRef = useRef(null);
-  const essayRef = useRef(essay);
-  const essaysRef = useRef(essays);
+  const [sharedEssayOwnerUid, setSharedEssayOwnerUid] = useState<string | null>(null);
+  const [sharedEssayPermission, setSharedEssayPermission] = useState<Permission | null>(null);
 
-  // Keep refs in sync
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const localEssayRef = useRef<Essay | null>(null);
+  const lastSavedEssayRef = useRef<string | null>(null);
+  const essayRef: MutableRefObject<Essay> = useRef(essay);
+  const essaysRef: MutableRefObject<EssayDocument[]> = useRef(essays);
+
   useEffect(() => {
     essayRef.current = essay;
   }, [essay]);
@@ -76,7 +115,6 @@ export function useEssay() {
     essaysRef.current = essays;
   }, [essays]);
 
-  // Load essays when user changes
   useEffect(() => {
     if (authLoading) return;
 
@@ -109,8 +147,10 @@ export function useEssay() {
             const essayData = firstEssay.data || createEssay();
             setEssay(essayData);
             lastSavedEssayRef.current = JSON.stringify(essayData);
-            // Set lastSavedAt from Firestore timestamp
-            const savedTime = firstEssay.updatedAt?.toDate?.() || firstEssay.updatedAt || new Date();
+            const savedTime =
+              (firstEssay.updatedAt as Timestamp)?.toDate?.() ||
+              (firstEssay.updatedAt as Date) ||
+              new Date();
             setLastSavedAt(savedTime);
           } else {
             const newId = generateId();
@@ -118,7 +158,7 @@ export function useEssay() {
             const newEssay = createEssay();
             setEssay(newEssay);
             lastSavedEssayRef.current = JSON.stringify(newEssay);
-            setLastSavedAt(null); // New essay, not saved yet
+            setLastSavedAt(null);
           }
         } catch (error) {
           console.error('Failed to load essays:', error);
@@ -139,39 +179,38 @@ export function useEssay() {
     loadData();
   }, [user, authLoading]);
 
-  // Load shared essays when user changes
   useEffect(() => {
     if (authLoading) return;
 
     if (!user) {
-      // Clear shared essays when logged out - handled in cleanup
       return () => setSharedEssays([]);
     }
 
     let cancelled = false;
     const loadSharedEssays = async () => {
       try {
-        const shared = await listSharedWithMe(user.email);
-        if (!cancelled) setSharedEssays(shared);
+        if (user.email) {
+          const shared = await listSharedWithMe(user.email);
+          if (!cancelled) setSharedEssays(shared);
+        }
       } catch (error) {
         console.error('Failed to load shared essays:', error);
       }
     };
 
     loadSharedEssays();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user, authLoading]);
 
-  // Helper to mark save complete
-  const markSaveComplete = useCallback((essayJson, timestamp) => {
+  const markSaveComplete = useCallback((essayJson: string, timestamp: Date) => {
     lastSavedEssayRef.current = essayJson;
     setHasUnsavedChanges(false);
     setLastSavedAt(timestamp);
     setSaveError(null);
   }, []);
 
-  // Save function (shared between debounce and interval)
-  // Uses refs to avoid recreating on every keystroke
   const performSave = useCallback(async () => {
     if (loading || authLoading) return;
 
@@ -184,16 +223,13 @@ export function useEssay() {
 
     if (user && currentEssayId) {
       try {
-        // Check if this is a shared essay we're editing
         if (isSharedEssay && sharedEssayOwnerUid && sharedEssayPermission === 'editor') {
-          // Find the shared essay info to get the title
           const sharedInfo = sharedEssays.find(
             (e) => e.essayId === currentEssayId && e.ownerUid === sharedEssayOwnerUid
           );
           const title = sharedInfo?.title || 'Untitled Essay';
           await saveSharedEssayToFirestore(sharedEssayOwnerUid, currentEssayId, currentEssay, title);
         } else {
-          // Normal save to user's own essay
           const existingEssay = essaysRef.current.find((e) => e.id === currentEssayId);
           const title = existingEssay?.title || 'Untitled Essay';
           await saveEssayToFirestore(user.uid, currentEssayId, currentEssay, title);
@@ -202,13 +238,11 @@ export function useEssay() {
             const exists = prev.some((e) => e.id === currentEssayId);
             if (exists) {
               return prev.map((e) =>
-                e.id === currentEssayId
-                  ? { ...e, data: currentEssay, updatedAt: now }
-                  : e
+                e.id === currentEssayId ? { ...e, data: currentEssay, updatedAt: now } : e
               );
             }
             return [
-              { id: currentEssayId, title, data: currentEssay, updatedAt: now },
+              { id: currentEssayId, title, data: currentEssay, updatedAt: now } as EssayDocument,
               ...prev,
             ];
           });
@@ -216,7 +250,6 @@ export function useEssay() {
 
         markSaveComplete(currentEssayJson, now);
       } catch {
-        // Fall back to localStorage on Firestore failure
         saveLocalEssay(currentEssay);
         markSaveComplete(currentEssayJson, now);
         setSaveError('Could not save to cloud. Your changes are saved locally.');
@@ -225,9 +258,18 @@ export function useEssay() {
       saveLocalEssay(currentEssay);
       markSaveComplete(currentEssayJson, now);
     }
-  }, [user, currentEssayId, loading, authLoading, markSaveComplete, isSharedEssay, sharedEssayOwnerUid, sharedEssayPermission, sharedEssays]);
+  }, [
+    user,
+    currentEssayId,
+    loading,
+    authLoading,
+    markSaveComplete,
+    isSharedEssay,
+    sharedEssayOwnerUid,
+    sharedEssayPermission,
+    sharedEssays,
+  ]);
 
-  // Track unsaved changes
   useEffect(() => {
     if (loading || authLoading) return;
 
@@ -236,16 +278,13 @@ export function useEssay() {
     setHasUnsavedChanges(hasChanges);
   }, [essay, loading, authLoading]);
 
-  // Debounced auto-save (2 seconds after typing stops)
   useEffect(() => {
     if (loading || authLoading) return;
 
-    // Clear any existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Set new timeout - will only fire if no changes for 2 seconds
     saveTimeoutRef.current = setTimeout(performSave, 2000);
 
     return () => {
@@ -255,7 +294,6 @@ export function useEssay() {
     };
   }, [essay, loading, authLoading, performSave]);
 
-  // Periodic auto-save every 30 seconds (backup in case debounce misses)
   useEffect(() => {
     if (loading || authLoading) return;
 
@@ -270,9 +308,8 @@ export function useEssay() {
     };
   }, [performSave, loading, authLoading]);
 
-  // Warn before leaving with unsaved changes
   useEffect(() => {
-    const handleBeforeUnload = (e) => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
         e.returnValue = '';
@@ -284,7 +321,6 @@ export function useEssay() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Handle migration
   const handleMigrate = useCallback(async () => {
     if (!user || !localEssayRef.current) return;
 
@@ -293,19 +329,14 @@ export function useEssay() {
     setEssay(localEssayRef.current);
 
     try {
-      await saveEssayToFirestore(
-        user.uid,
-        newId,
-        localEssayRef.current,
-        'Migrated Essay'
-      );
+      await saveEssayToFirestore(user.uid, newId, localEssayRef.current, 'Migrated Essay');
       setEssays([
         {
           id: newId,
           title: 'Migrated Essay',
           data: localEssayRef.current,
           updatedAt: new Date(),
-        },
+        } as EssayDocument,
       ]);
       clearLocalEssay();
     } catch (error) {
@@ -325,16 +356,13 @@ export function useEssay() {
     clearLocalEssay();
   }, []);
 
-  // Select an essay
   const selectEssay = useCallback(
-    async (essayId) => {
+    async (essayId: string) => {
       if (!user) return;
 
-      // Check if it's already the current essay (and not a shared one)
       if (essayId === currentEssayId && !isSharedEssay) return;
 
       setLoading(true);
-      // Clear shared essay state when selecting own essay
       setIsSharedEssay(false);
       setSharedEssayOwnerUid(null);
       setSharedEssayPermission(null);
@@ -347,11 +375,12 @@ export function useEssay() {
           const loadedData = essayData.data || createEssay();
           setEssay(loadedData);
           lastSavedEssayRef.current = JSON.stringify(loadedData);
-          // Set lastSavedAt from loaded essay's timestamp
-          const savedTime = essayData.updatedAt?.toDate?.() || essayData.updatedAt || new Date();
+          const savedTime =
+            (essayData.updatedAt as Timestamp)?.toDate?.() ||
+            (essayData.updatedAt as Date) ||
+            new Date();
           setLastSavedAt(savedTime);
         } else {
-          // Essay doesn't exist yet (newly created), just set the ID
           setCurrentEssayId(essayId);
           const newEssay = createEssay();
           setEssay(newEssay);
@@ -360,7 +389,6 @@ export function useEssay() {
         }
       } catch (error) {
         console.error('Failed to load essay:', error);
-        // Still set the ID so user can work on a new essay
         setCurrentEssayId(essayId);
         const newEssay = createEssay();
         setEssay(newEssay);
@@ -373,9 +401,8 @@ export function useEssay() {
     [user, currentEssayId, isSharedEssay]
   );
 
-  // Select a shared essay
   const selectSharedEssay = useCallback(
-    async (ownerUid, essayId, permission) => {
+    async (ownerUid: string, essayId: string, permission: Permission) => {
       if (!user) return;
 
       setLoading(true);
@@ -386,7 +413,10 @@ export function useEssay() {
           const loadedData = essayData.data || createEssay();
           setEssay(loadedData);
           lastSavedEssayRef.current = JSON.stringify(loadedData);
-          const savedTime = essayData.updatedAt?.toDate?.() || essayData.updatedAt || new Date();
+          const savedTime =
+            (essayData.updatedAt as Timestamp)?.toDate?.() ||
+            (essayData.updatedAt as Date) ||
+            new Date();
           setLastSavedAt(savedTime);
           setIsSharedEssay(true);
           setSharedEssayOwnerUid(ownerUid);
@@ -401,7 +431,6 @@ export function useEssay() {
     [user]
   );
 
-  // Load sharing info for current essay
   const loadSharingInfo = useCallback(async () => {
     if (!user || !currentEssayId || isSharedEssay) {
       setSharingInfo(null);
@@ -417,17 +446,14 @@ export function useEssay() {
     }
   }, [user, currentEssayId, isSharedEssay]);
 
-  // Save all sharing settings at once
   const saveSharing = useCallback(
-    async ({ collaborators, isPublic, publicPermission }) => {
+    async ({ collaborators, isPublic, publicPermission }: SaveSharingParams) => {
       if (!user || !currentEssayId || isSharedEssay) return;
 
       try {
         const currentEssayData = essays.find((e) => e.id === currentEssayId);
         const title = currentEssayData?.title || 'Untitled Essay';
 
-        // IMPORTANT: Save the essay content first to ensure it's in Firestore
-        // This ensures the data field exists when someone accesses the shared link
         const currentEssay = essayRef.current;
         await saveEssayToFirestore(user.uid, currentEssayId, currentEssay, title);
 
@@ -437,12 +463,11 @@ export function useEssay() {
           collaborators,
           isPublic,
           publicPermission || 'viewer',
-          user.email,
-          user.displayName,
+          user.email || '',
+          user.displayName || '',
           title
         );
 
-        // Update local sharing info
         setSharingInfo({
           isPublic,
           publicToken,
@@ -450,7 +475,6 @@ export function useEssay() {
           collaborators,
         });
 
-        // Mark as saved since we just saved
         const now = new Date();
         markSaveComplete(JSON.stringify(currentEssay), now);
       } catch (error) {
@@ -461,30 +485,26 @@ export function useEssay() {
     [user, currentEssayId, isSharedEssay, essays, markSaveComplete]
   );
 
-  // Create new essay
-  const createNewEssay = useCallback(() => {
+  const createNewEssay = useCallback((): string => {
     const newId = generateId();
     const newEssay = createEssay();
     setCurrentEssayId(newId);
     setEssay(newEssay);
     lastSavedEssayRef.current = JSON.stringify(newEssay);
     setHasUnsavedChanges(false);
-    // Clear shared essay state
     setIsSharedEssay(false);
     setSharedEssayOwnerUid(null);
     setSharedEssayPermission(null);
     setSharingInfo(null);
-    // Add to essays list immediately
     setEssays((prev) => [
-      { id: newId, title: 'Untitled', data: newEssay, updatedAt: new Date() },
+      { id: newId, title: 'Untitled', data: newEssay, updatedAt: new Date() } as EssayDocument,
       ...prev,
     ]);
     return newId;
   }, []);
 
-  // Delete essay
   const deleteEssay = useCallback(
-    async (essayId) => {
+    async (essayId: string) => {
       if (!user) return;
 
       try {
@@ -506,17 +526,14 @@ export function useEssay() {
     [user, currentEssayId, essays, selectEssay, createNewEssay]
   );
 
-  // Rename essay
   const renameEssay = useCallback(
-    async (essayId, newTitle) => {
+    async (essayId: string, newTitle: string) => {
       if (!user) return;
 
-      // Update local state immediately
       setEssays((prev) =>
         prev.map((e) => (e.id === essayId ? { ...e, title: newTitle, updatedAt: new Date() } : e))
       );
 
-      // Then sync to Firestore
       try {
         await updateEssayTitle(user.uid, essayId, newTitle);
       } catch (error) {
@@ -526,7 +543,6 @@ export function useEssay() {
     [user]
   );
 
-  // Use the shared essay update functions
   const {
     updateIntro,
     addClaim,
@@ -539,13 +555,11 @@ export function useEssay() {
     updateConclusion,
   } = useEssayUpdates(setEssay);
 
-  // Get claim by ID
   const getClaimById = useCallback(
-    (claimId) => modelGetClaimById(essay, claimId),
+    (claimId: string) => modelGetClaimById(essay, claimId),
     [essay]
   );
 
-  // Reset essay
   const resetEssay = useCallback(() => {
     if (user) {
       createNewEssay();
@@ -587,7 +601,6 @@ export function useEssay() {
     renameEssay,
     handleMigrate,
     handleSkipMigration,
-    // Sharing-related
     sharedEssays,
     sharingInfo,
     isSharedEssay,

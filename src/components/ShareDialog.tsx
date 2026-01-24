@@ -1,5 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent, ChangeEvent, MouseEvent } from 'react';
 import { useClipboard } from '../hooks/useClipboard';
+import type { SharingInfo, Collaborator } from '../firebase/firestore';
+
+interface SaveSharingParams {
+  collaborators: Collaborator[];
+  isPublic: boolean;
+  publicPermission: 'viewer' | 'editor';
+}
+
+interface ShareDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  sharingInfo: SharingInfo | null;
+  onSaveSharing: (params: SaveSharingParams) => Promise<void>;
+  isLoading: boolean;
+  essayId: string | null;
+}
 
 export function ShareDialog({
   isOpen,
@@ -8,19 +24,17 @@ export function ShareDialog({
   onSaveSharing,
   isLoading,
   essayId,
-}) {
+}: ShareDialogProps) {
   const [email, setEmail] = useState('');
-  const [permission, setPermission] = useState('viewer');
-  const [error, setError] = useState(null);
+  const [permission, setPermission] = useState<'viewer' | 'editor'>('viewer');
+  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Local state for pending changes
-  const [localCollaborators, setLocalCollaborators] = useState([]);
+  const [localCollaborators, setLocalCollaborators] = useState<Collaborator[]>([]);
   const [localIsPublic, setLocalIsPublic] = useState(false);
-  const [localPublicPermission, setLocalPublicPermission] = useState('viewer');
+  const [localPublicPermission, setLocalPublicPermission] = useState<'viewer' | 'editor'>('viewer');
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Initialize local state when dialog opens or sharingInfo changes
   useEffect(() => {
     if (isOpen && sharingInfo) {
       setLocalCollaborators(sharingInfo.collaborators || []);
@@ -35,7 +49,6 @@ export function ShareDialog({
     }
   }, [isOpen, sharingInfo]);
 
-  // Reset form state when dialog closes
   useEffect(() => {
     if (!isOpen) {
       setEmail('');
@@ -45,13 +58,9 @@ export function ShareDialog({
     }
   }, [isOpen]);
 
-  // Use shared clipboard hook
   const { copied: copySuccess, copy } = useClipboard();
 
-  // Generate URL for public link (uses essay ID directly now)
-  const publicUrl = essayId
-    ? `${window.location.origin}/essay/${essayId}`
-    : '';
+  const publicUrl = essayId ? `${window.location.origin}/essay/${essayId}` : '';
 
   const handleCopyLink = () => {
     if (publicUrl && localIsPublic) {
@@ -61,7 +70,7 @@ export function ShareDialog({
 
   if (!isOpen) return null;
 
-  const handleAddCollaborator = (e) => {
+  const handleAddCollaborator = (e: FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
 
@@ -73,16 +82,14 @@ export function ShareDialog({
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Check if already in list
-    if (localCollaborators.some(c => c.email.toLowerCase() === trimmedEmail)) {
+    if (localCollaborators.some((c) => c.email.toLowerCase() === trimmedEmail)) {
       setError('This person already has access');
       return;
     }
 
-    // Add to local list
-    setLocalCollaborators(prev => [
+    setLocalCollaborators((prev) => [
       ...prev,
-      { email: trimmedEmail, permission, addedAt: new Date() }
+      { email: trimmedEmail, permission, addedAt: new Date() },
     ]);
     setEmail('');
     setPermission('viewer');
@@ -90,13 +97,13 @@ export function ShareDialog({
     setHasChanges(true);
   };
 
-  const handleRemoveCollaborator = (emailToRemove) => {
-    setLocalCollaborators(prev => prev.filter(c => c.email !== emailToRemove));
+  const handleRemoveCollaborator = (emailToRemove: string) => {
+    setLocalCollaborators((prev) => prev.filter((c) => c.email !== emailToRemove));
     setHasChanges(true);
   };
 
   const handleTogglePublic = () => {
-    setLocalIsPublic(prev => !prev);
+    setLocalIsPublic((prev) => !prev);
     setHasChanges(true);
   };
 
@@ -124,7 +131,7 @@ export function ShareDialog({
 
   return (
     <div className="modal-overlay" onClick={handleCancel}>
-      <div className="modal-content share-dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content share-dialog" onClick={(e: MouseEvent) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Share Essay</h2>
           <button className="modal-close" onClick={handleCancel}>
@@ -142,24 +149,22 @@ export function ShareDialog({
                   type="email"
                   placeholder="Enter email address"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   className="share-email-input"
                   disabled={isSaving}
                 />
                 <select
                   value={permission}
-                  onChange={(e) => setPermission(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                    setPermission(e.target.value as 'viewer' | 'editor')
+                  }
                   className="share-permission-select"
                   disabled={isSaving}
                 >
                   <option value="viewer">Viewer</option>
                   <option value="editor">Editor</option>
                 </select>
-                <button
-                  type="submit"
-                  className="btn-share-add"
-                  disabled={isSaving || !email.trim()}
-                >
+                <button type="submit" className="btn-share-add" disabled={isSaving || !email.trim()}>
                   Add
                 </button>
               </div>
@@ -203,8 +208,8 @@ export function ShareDialog({
                 </label>
                 <select
                   value={localPublicPermission}
-                  onChange={(e) => {
-                    setLocalPublicPermission(e.target.value);
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                    setLocalPublicPermission(e.target.value as 'viewer' | 'editor');
                     setHasChanges(true);
                   }}
                   className="public-permission-select"
@@ -215,13 +220,15 @@ export function ShareDialog({
                 </select>
               </div>
               {publicUrl && (
-                <div className={`public-link-preview ${!localIsPublic ? 'public-link-disabled' : ''}`}>
+                <div
+                  className={`public-link-preview ${!localIsPublic ? 'public-link-disabled' : ''}`}
+                >
                   <input
                     type="text"
                     className="public-link-input"
                     value={publicUrl}
                     readOnly
-                    onClick={(e) => localIsPublic && e.target.select()}
+                    onClick={(e) => localIsPublic && (e.target as HTMLInputElement).select()}
                     disabled={!localIsPublic}
                   />
                   <button
@@ -238,11 +245,7 @@ export function ShareDialog({
             </div>
 
             <div className="share-dialog-actions">
-              <button
-                className="btn-share-cancel"
-                onClick={handleCancel}
-                disabled={isSaving}
-              >
+              <button className="btn-share-cancel" onClick={handleCancel} disabled={isSaving}>
                 Cancel
               </button>
               <button

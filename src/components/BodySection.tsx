@@ -1,7 +1,27 @@
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { OutlineCell, ParagraphCell, PurposeCell, SectionLabel } from './Cells';
 import { AddRemoveActions } from './AddRemoveActions';
 import { ConfirmDialog } from './ConfirmDialog';
+import type { BodyParagraph, Claim, ProofBlock } from '../models/essay';
+
+interface BodySectionProps {
+  bodyParagraph: BodyParagraph;
+  bodyIndex: number;
+  thesis: string;
+  claim: Claim | undefined;
+  updateBodyParagraph: (bodyId: string, field: keyof BodyParagraph, value: BodyParagraph[keyof BodyParagraph]) => void;
+  addProofBlock: (bodyId: string) => void;
+  updateProofBlock: (bodyId: string, proofBlockId: string, field: keyof ProofBlock, value: string) => void;
+  removeProofBlock: (bodyId: string, proofBlockId: string) => void;
+  sectionCollapsed: boolean;
+  onToggleSection: () => void;
+  readOnly?: boolean;
+}
+
+interface DeleteConfirm {
+  bodyId: string;
+  proofBlockId: string;
+}
 
 export function BodySection({
   bodyParagraph,
@@ -15,22 +35,22 @@ export function BodySection({
   sectionCollapsed,
   onToggleSection,
   readOnly = false,
-}) {
-  const [confirmDelete, setConfirmDelete] = useState(null);
+}: BodySectionProps) {
+  const [confirmDelete, setConfirmDelete] = useState<DeleteConfirm | null>(null);
   const rowCount = 2 + bodyParagraph.proofBlocks.length * 4;
   const claimText = claim?.text || `[Claim ${bodyIndex + 1}]`;
   const thesisText = thesis || '[Thesis]';
 
-  // Generate proof summaries from connection fields
-  const getProofSummary = (proofBlock, index) => {
+  const getProofSummary = (proofBlock: ProofBlock, index: number): string => {
     const connection = proofBlock.connection?.trim();
     return connection ? `Summary of "${connection}"` : `[Proof ${index + 1}]`;
   };
   const proofSummaries = bodyParagraph.proofBlocks.map((pb, i) => getProofSummary(pb, i));
 
-  const handleRemoveProofBlock = (bodyId, proofBlockId) => {
-    const proofBlock = bodyParagraph.proofBlocks.find(pb => pb.id === proofBlockId);
-    const hasContent = proofBlock?.quote?.trim() || proofBlock?.analysis?.trim() || proofBlock?.connection?.trim();
+  const handleRemoveProofBlock = (bodyId: string, proofBlockId: string) => {
+    const proofBlock = bodyParagraph.proofBlocks.find((pb) => pb.id === proofBlockId);
+    const hasContent =
+      proofBlock?.quote?.trim() || proofBlock?.analysis?.trim() || proofBlock?.connection?.trim();
     if (hasContent) {
       setConfirmDelete({ bodyId, proofBlockId });
     } else {
@@ -46,16 +66,24 @@ export function BodySection({
   };
 
   return (
-    <div className={`section section-body section-body-${bodyIndex % 3} ${sectionCollapsed ? 'section-collapsed' : ''}`}>
+    <div
+      className={`section section-body section-body-${bodyIndex % 3} ${sectionCollapsed ? 'section-collapsed' : ''}`}
+    >
       <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
-        <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>Body {bodyIndex + 1}</SectionLabel>
+        <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>
+          Body {bodyIndex + 1}
+        </SectionLabel>
         <PurposeCell label="Purpose">
           Topic sentence: introduce that you will prove <span className="ref">{claimText}</span>
         </PurposeCell>
         <OutlineCell
           value={bodyParagraph.purpose}
           onChange={(value) => updateBodyParagraph(bodyParagraph.id, 'purpose', value)}
-          placeholderContent={<>e.g., This paragraph will show that <span className="ref">{claimText}</span>.</>}
+          placeholderContent={
+            <>
+              e.g., This paragraph will show that <span className="ref">{claimText}</span>.
+            </>
+          }
           readOnly={readOnly}
         />
         <ParagraphCell
@@ -83,12 +111,33 @@ export function BodySection({
         ))}
 
         <PurposeCell label="Recap">
-          Tie body together to say <span className="ref">{thesisText}</span> is true because <span className="ref">{claimText}</span> is true because {proofSummaries.map((summary, i) => <span key={i} className="ref">{summary}</span>).reduce((prev, curr, i) => i === 0 ? [curr] : [...prev, ' ', curr], [])} are true
+          Tie body together to say <span className="ref">{thesisText}</span> is true because{' '}
+          <span className="ref">{claimText}</span> is true because{' '}
+          {proofSummaries
+            .map<ReactNode>((summary, i) => (
+              <span key={i} className="ref">
+                {summary}
+              </span>
+            ))
+            .reduce<ReactNode[]>((prev, curr, i) => (i === 0 ? [curr] : [...prev, ' ', curr]), [])}{' '}
+          are true
         </PurposeCell>
         <OutlineCell
           value={bodyParagraph.recap}
           onChange={(value) => updateBodyParagraph(bodyParagraph.id, 'recap', value)}
-          placeholderContent={<>e.g., {proofSummaries.map((summary, i) => <span key={i}><span className="ref">{summary}</span>{i < proofSummaries.length - 1 ? ', ' : ' '}</span>)}show that <span className="ref">{claimText}</span> is true which shows that <span className="ref">{thesisText}</span> is true.</>}
+          placeholderContent={
+            <>
+              e.g.,{' '}
+              {proofSummaries.map((summary, i) => (
+                <span key={i}>
+                  <span className="ref">{summary}</span>
+                  {i < proofSummaries.length - 1 ? ', ' : ' '}
+                </span>
+              ))}
+              show that <span className="ref">{claimText}</span> is true which shows that{' '}
+              <span className="ref">{thesisText}</span> is true.
+            </>
+          }
           readOnly={readOnly}
         />
       </div>
@@ -104,6 +153,19 @@ export function BodySection({
   );
 }
 
+interface ProofBlockRowsProps {
+  proofBlock: ProofBlock;
+  pbIndex: number;
+  bodyId: string;
+  claimText: string;
+  isOnly: boolean;
+  isLast: boolean;
+  updateProofBlock: (bodyId: string, proofBlockId: string, field: keyof ProofBlock, value: string) => void;
+  removeProofBlock: (bodyId: string, proofBlockId: string) => void;
+  addProofBlock: (bodyId: string) => void;
+  readOnly?: boolean;
+}
+
 function ProofBlockRows({
   proofBlock,
   pbIndex,
@@ -115,7 +177,7 @@ function ProofBlockRows({
   removeProofBlock,
   addProofBlock,
   readOnly = false,
-}) {
+}: ProofBlockRowsProps) {
   const depthClass = `proof-depth-${Math.min(pbIndex, 4)}`;
 
   return (
@@ -142,7 +204,11 @@ function ProofBlockRows({
       <OutlineCell
         value={proofBlock.quote}
         onChange={(value) => updateProofBlock(bodyId, proofBlock.id, 'quote', value)}
-        placeholderContent={<>What quote or other evidence supports <span className="ref">{claimText}</span>?</>}
+        placeholderContent={
+          <>
+            What quote or other evidence supports <span className="ref">{claimText}</span>?
+          </>
+        }
         className={depthClass}
         readOnly={readOnly}
       />
@@ -164,7 +230,11 @@ function ProofBlockRows({
       <OutlineCell
         value={proofBlock.connection}
         onChange={(value) => updateProofBlock(bodyId, proofBlock.id, 'connection', value)}
-        placeholderContent={<>How does this prove <span className="ref">{claimText}</span>?</>}
+        placeholderContent={
+          <>
+            How does this prove <span className="ref">{claimText}</span>?
+          </>
+        }
         className={`${depthClass} proof-last-row`}
         readOnly={readOnly}
       />

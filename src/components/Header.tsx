@@ -1,8 +1,22 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { CopyButton } from './CopyButton';
 import { ShareButton } from './ShareButton';
 import { formatRelativeDate } from '../utils/formatDate';
+import type { Essay } from '../models/essay';
+
+interface HeaderProps {
+  essay: Essay | null;
+  getFullEssayText: (essay: Essay) => string;
+  currentTitle: string;
+  lastSaved: Date | null;
+  onRenameEssay: (newTitle: string) => void;
+  onGoHome: () => void;
+  showEditor: boolean;
+  onShareClick: (() => void) | null;
+  isSharedEssay: boolean;
+  permissionBadge?: string | null;
+}
 
 export function Header({
   essay,
@@ -15,17 +29,17 @@ export function Header({
   onShareClick,
   isSharedEssay,
   permissionBadge,
-}) {
+}: HeaderProps) {
   const { user, loading, signIn, signOut } = useAuth();
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState('');
-  const avatarMenuRef = useRef(null);
-  const titleInputRef = useRef(null);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target)) {
+    function handleClickOutside(event: globalThis.MouseEvent) {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target as Node)) {
         setShowAvatarMenu(false);
       }
     }
@@ -68,7 +82,7 @@ export function Header({
     setIsEditingTitle(false);
   };
 
-  const handleTitleKeyDown = (e) => {
+  const handleTitleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleTitleSave();
     } else if (e.key === 'Escape') {
@@ -80,7 +94,14 @@ export function Header({
     <header className="app-header">
       <div className="header-left">
         <button className="menu-btn" onClick={onGoHome} title="Menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
@@ -109,9 +130,7 @@ export function Header({
                 {currentTitle || 'Untitled'}
               </button>
             )}
-            {permissionBadge && (
-              <span className="permission-badge">{permissionBadge}</span>
-            )}
+            {permissionBadge && <span className="permission-badge">{permissionBadge}</span>}
             {lastSaved && !permissionBadge && (
               <span className="last-saved">Saved {formatRelativeDate(lastSaved)}</span>
             )}
@@ -123,8 +142,12 @@ export function Header({
         {showEditor && !isSharedEssay && onShareClick && (
           <ShareButton onClick={onShareClick} className="share-btn-header" />
         )}
-        {showEditor && (
-          <CopyButton text={getFullEssayText(essay)} title="Copy Full Essay" className="copy-btn-header" />
+        {showEditor && essay && (
+          <CopyButton
+            text={getFullEssayText(essay)}
+            title="Copy Full Essay"
+            className="copy-btn-header"
+          />
         )}
 
         <div className="auth-section">
@@ -132,16 +155,9 @@ export function Header({
             <span className="auth-loading">...</span>
           ) : user ? (
             <div className="avatar-menu-container" ref={avatarMenuRef}>
-              <button
-                className="avatar-btn"
-                onClick={() => setShowAvatarMenu(!showAvatarMenu)}
-              >
+              <button className="avatar-btn" onClick={() => setShowAvatarMenu(!showAvatarMenu)}>
                 {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName}
-                    className="user-avatar"
-                  />
+                  <img src={user.photoURL} alt={user.displayName || ''} className="user-avatar" />
                 ) : (
                   <div className="user-avatar-placeholder">
                     {user.displayName?.[0] || user.email?.[0] || '?'}

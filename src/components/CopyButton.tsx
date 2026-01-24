@@ -1,9 +1,16 @@
+import { MouseEvent } from 'react';
 import { useClipboard } from '../hooks/useClipboard';
 
-export function CopyButton({ text, className = '', title = 'Copy to clipboard' }) {
+interface CopyButtonProps {
+  text: string;
+  className?: string;
+  title?: string;
+}
+
+export function CopyButton({ text, className = '', title = 'Copy to clipboard' }: CopyButtonProps) {
   const { copied, copy } = useClipboard();
 
-  const handleClick = (e) => {
+  const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     copy(text);

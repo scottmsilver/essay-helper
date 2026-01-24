@@ -1,4 +1,16 @@
+import { MouseEvent } from 'react';
 import { formatRelativeDate } from '../utils/formatDate';
+import type { EssayDocument, SharedEssayRef, Permission } from '../firebase/firestore';
+
+interface HomePageProps {
+  essays: EssayDocument[];
+  sharedEssays: SharedEssayRef[];
+  onSelectEssay: (essayId: string) => void;
+  onSelectSharedEssay: (ownerUid: string, essayId: string, permission: Permission) => void;
+  onNewEssay: () => void;
+  onDeleteEssay: (essayId: string) => void;
+  isLoggedIn: boolean;
+}
 
 export function HomePage({
   essays,
@@ -8,8 +20,8 @@ export function HomePage({
   onNewEssay,
   onDeleteEssay,
   isLoggedIn,
-}) {
-  const handleDelete = (e, essayId) => {
+}: HomePageProps) {
+  const handleDelete = (e: MouseEvent<HTMLButtonElement>, essayId: string) => {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this essay?')) {
       onDeleteEssay(essayId);
@@ -38,9 +50,7 @@ export function HomePage({
                   className="essay-card"
                   onClick={() => onSelectEssay(essay.id)}
                 >
-                  <div className="essay-card-title">
-                    {essay.title || 'Untitled Essay'}
-                  </div>
+                  <div className="essay-card-title">{essay.title || 'Untitled Essay'}</div>
                   <div className="essay-card-date">
                     Modified {formatRelativeDate(essay.updatedAt)}
                   </div>
@@ -65,11 +75,11 @@ export function HomePage({
                 <div
                   key={shared.id}
                   className="essay-card essay-card-shared"
-                  onClick={() => onSelectSharedEssay(shared.ownerUid, shared.essayId, shared.permission)}
+                  onClick={() =>
+                    onSelectSharedEssay(shared.ownerUid, shared.essayId, shared.permission)
+                  }
                 >
-                  <div className="essay-card-title">
-                    {shared.title || 'Untitled Essay'}
-                  </div>
+                  <div className="essay-card-title">{shared.title || 'Untitled Essay'}</div>
                   <div className="essay-card-owner">
                     From: {shared.ownerDisplayName || shared.ownerEmail}
                   </div>
