@@ -51,7 +51,6 @@ function ExternalEssayEditor({ externalEssay, externalPermission, externalOwnerU
   const isEditor = externalPermission === 'editor';
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
   const [essay, setEssay] = useState<Essay>(() => externalEssay.data || createEssay());
 
@@ -59,14 +58,11 @@ function ExternalEssayEditor({ externalEssay, externalPermission, externalOwnerU
     async (essayData: Essay) => {
       if (!isEditor || !externalOwnerUid || !externalEssay?.id) return;
 
-      setIsSaving(true);
       try {
         await savePublicEssay(externalOwnerUid, externalEssay.id, essayData, externalEssay.title);
         setLastSaved(new Date());
       } catch (err) {
         console.error('Failed to save:', err);
-      } finally {
-        setIsSaving(false);
       }
     },
     [isEditor, externalOwnerUid, externalEssay]
@@ -97,13 +93,14 @@ function ExternalEssayEditor({ externalEssay, externalPermission, externalOwnerU
     [essay.intro?.claims]
   );
 
-  const permissionBadge = isEditor ? (isSaving ? 'Saving...' : lastSaved ? 'Saved' : 'Can Edit') : 'View Only';
+  // Show session save time if available, otherwise document's last modified time
+  const displayLastSaved = lastSaved || externalEssay.updatedAt;
 
   return (
     <EssayEditor
       essay={essay}
       currentEssayId={externalEssay.id}
-      lastSaved={lastSaved}
+      lastSaved={displayLastSaved}
       currentTitle={externalEssay.title || 'Untitled Essay'}
       updateIntro={updateIntro}
       addClaim={() => {}}
@@ -122,7 +119,6 @@ function ExternalEssayEditor({ externalEssay, externalPermission, externalOwnerU
       loadSharingInfo={() => Promise.resolve()}
       saveSharing={() => Promise.resolve()}
       readOnly={!isEditor}
-      permissionBadge={permissionBadge}
     />
   );
 }
@@ -149,7 +145,6 @@ interface EssayEditorProps {
   loadSharingInfo: () => Promise<void>;
   saveSharing: (params: { collaborators: SharingInfo['collaborators']; isPublic: boolean; publicPermission: 'viewer' | 'editor' }) => Promise<void>;
   readOnly?: boolean;
-  permissionBadge?: string | null;
 }
 
 function EssayEditor({
@@ -174,7 +169,6 @@ function EssayEditor({
   loadSharingInfo,
   saveSharing,
   readOnly = false,
-  permissionBadge = null,
 }: EssayEditorProps) {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -242,7 +236,7 @@ function EssayEditor({
         showEditor={true}
         onShareClick={readOnly ? null : () => setShowShareDialog(true)}
         isSharedEssay={isSharedEssay}
-        permissionBadge={permissionBadge}
+        readOnly={readOnly}
       />
 
       {!readOnly && (
