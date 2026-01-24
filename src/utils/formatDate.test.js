@@ -45,11 +45,4 @@ describe('formatRelativeDate', () => {
     const date = new Date('2026-01-18T12:00:00Z');
     expect(formatRelativeDate(date)).toBe('1 day ago');
   });
-
-  it('handles Firestore timestamps with toDate method', () => {
-    const firestoreTimestamp = {
-      toDate: () => new Date('2026-01-19T11:55:00Z'),
-    };
-    expect(formatRelativeDate(firestoreTimestamp)).toBe('5 min ago');
-  });
 });

@@ -1,9 +1,12 @@
 /**
- * Persistence wrapper types for essays stored in Firestore
+ * Persistence wrapper types for essays
+ *
+ * These types represent the external contract for essay documents.
+ * All timestamp fields use standard Date objects - storage implementations
+ * are responsible for normalizing their internal representations.
  */
 
 import type { Essay } from './essay';
-import type { Timestamp } from 'firebase/firestore';
 
 // =============================================================================
 // Permission Types
@@ -19,7 +22,7 @@ export type Permission = 'owner' | 'editor' | 'viewer';
 export interface Collaborator {
   email: string;
   permission: PermissionLevel;
-  addedAt: Date | Timestamp;
+  addedAt: Date;
 }
 
 export interface SharingInfo {
@@ -39,8 +42,8 @@ export interface EssayDocument {
   id: string;
   title: string;
   data: Essay;
-  updatedAt: Timestamp | Date;
-  createdAt?: Timestamp | Date;
+  updatedAt: Date;
+  createdAt?: Date;
   sharing?: SharingInfo;
   ownerUid?: string;
 }
@@ -53,7 +56,7 @@ export interface SharedEssayRef {
   ownerDisplayName: string;
   title: string;
   permission: PermissionLevel;
-  sharedAt: Timestamp;
+  sharedAt: Date;
 }
 
 export interface EssayWithPermissions {

@@ -273,7 +273,7 @@ describe('Sharing', () => {
       const sharingInfo = {
         isPublic: true,
         publicToken: 'abc123',
-        collaborators: [{ email: 'test@example.com', permission: 'editor' }],
+        collaborators: [{ email: 'test@example.com', permission: 'editor', addedAt: new Date() }],
       };
 
       mockGetDoc.mockResolvedValue({
@@ -283,7 +283,12 @@ describe('Sharing', () => {
 
       const result = await getEssaySharingInfo('user123', 'essay123');
 
-      expect(result).toEqual(sharingInfo);
+      expect(result?.isPublic).toBe(true);
+      expect(result?.publicToken).toBe('abc123');
+      expect(result?.collaborators).toHaveLength(1);
+      expect(result?.collaborators[0].email).toBe('test@example.com');
+      expect(result?.collaborators[0].permission).toBe('editor');
+      expect(result?.collaborators[0].addedAt).toBeInstanceOf(Date);
     });
   });
 

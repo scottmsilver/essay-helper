@@ -55,6 +55,53 @@ function generatePublicToken(): string {
   return token;
 }
 
+function toDate(ts: Timestamp | Date | undefined | null): Date {
+  if (!ts) return new Date();
+  if (ts instanceof Date) return ts;
+  return ts.toDate();
+}
+
+function normalizeEssayDocument(id: string, data: Record<string, unknown>, ownerUid?: string): EssayDocument {
+  return {
+    id,
+    title: data.title as string,
+    data: data.data as Essay,
+    updatedAt: toDate(data.updatedAt as Timestamp | Date | undefined),
+    createdAt: data.createdAt ? toDate(data.createdAt as Timestamp | Date) : undefined,
+    sharing: data.sharing ? normalizeSharingInfo(data.sharing as Record<string, unknown>) : undefined,
+    ownerUid,
+  };
+}
+
+function normalizeSharingInfo(sharing: Record<string, unknown>): SharingInfo {
+  const collaborators = (sharing.collaborators as Array<Record<string, unknown>> | undefined) || [];
+  return {
+    isPublic: sharing.isPublic as boolean,
+    publicToken: sharing.publicToken as string | null,
+    publicPermission: sharing.publicPermission as PermissionLevel | null | undefined,
+    collaborators: collaborators.map((c) => ({
+      email: c.email as string,
+      permission: c.permission as PermissionLevel,
+      addedAt: toDate(c.addedAt as Timestamp | Date | undefined),
+    })),
+    collaboratorEmails: sharing.collaboratorEmails as string[] | undefined,
+    editorEmails: sharing.editorEmails as string[] | undefined,
+  };
+}
+
+function normalizeSharedEssayRef(id: string, data: Record<string, unknown>): SharedEssayRef {
+  return {
+    id,
+    essayId: data.essayId as string,
+    ownerUid: data.ownerUid as string,
+    ownerEmail: data.ownerEmail as string,
+    ownerDisplayName: data.ownerDisplayName as string,
+    title: data.title as string,
+    permission: data.permission as PermissionLevel,
+    sharedAt: toDate(data.sharedAt as Timestamp | Date | undefined),
+  };
+}
+
 // =============================================================================
 // Essay CRUD
 // =============================================================================
@@ -63,16 +110,11 @@ export async function listEssays(userId: string): Promise<EssayDocument[]> {
   const essaysRef = getUserEssaysCollection(userId);
   const snapshot = await getDocs(essaysRef);
 
-  const essays = snapshot.docs.map((d) => ({
-    id: d.id,
-    ...d.data(),
-  })) as EssayDocument[];
+  const essays = snapshot.docs.map((d) =>
+    normalizeEssayDocument(d.id, d.data() as Record<string, unknown>)
+  );
 
-  return essays.sort((a, b) => {
-    const aTime = (a.updatedAt as Timestamp)?.toMillis?.() ?? 0;
-    const bTime = (b.updatedAt as Timestamp)?.toMillis?.() ?? 0;
-    return bTime - aTime;
-  });
+  return essays.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 }
 
 export async function getEssay(userId: string, essayId: string): Promise<EssayDocument | null> {
@@ -83,10 +125,7 @@ export async function getEssay(userId: string, essayId: string): Promise<EssayDo
     return null;
   }
 
-  return {
-    id: snapshot.id,
-    ...snapshot.data(),
-  } as EssayDocument;
+  return normalizeEssayDocument(snapshot.id, snapshot.data() as Record<string, unknown>);
 }
 
 export async function saveEssay(
@@ -153,13 +192,15 @@ export async function getEssaySharingInfo(ownerUid: string, essayId: string): Pr
   }
 
   const data = snapshot.data();
-  return (
-    data.sharing || {
+  if (!data.sharing) {
+    return {
       isPublic: false,
       publicToken: null,
       collaborators: [],
-    }
-  );
+    };
+  }
+
+  return normalizeSharingInfo(data.sharing as Record<string, unknown>);
 }
 
 export async function shareEssay(
@@ -294,10 +335,9 @@ export async function listSharedWithMe(userEmail: string): Promise<SharedEssayRe
   const sharedRef = collection(db, 'sharedWithMe', normalizedEmail, 'essays');
   const snapshot = await getDocs(sharedRef);
 
-  return snapshot.docs.map((d) => ({
-    id: d.id,
-    ...d.data(),
-  })) as SharedEssayRef[];
+  return snapshot.docs.map((d) =>
+    normalizeSharedEssayRef(d.id, d.data() as Record<string, unknown>)
+  );
 }
 
 export async function getPublicEssay(token: string): Promise<EssayDocument | null> {
@@ -323,11 +363,7 @@ export async function getPublicEssay(token: string): Promise<EssayDocument | nul
     return null;
   }
 
-  return {
-    id: essayId,
-    ownerUid,
-    ...essayData,
-  } as EssayDocument;
+  return normalizeEssayDocument(essayId, essayData as Record<string, unknown>, ownerUid);
 }
 
 export async function getSharedEssay(ownerUid: string, essayId: string): Promise<EssayDocument | null> {
@@ -338,11 +374,7 @@ export async function getSharedEssay(ownerUid: string, essayId: string): Promise
     return null;
   }
 
-  return {
-    id: snapshot.id,
-    ownerUid,
-    ...snapshot.data(),
-  } as EssayDocument;
+  return normalizeEssayDocument(snapshot.id, snapshot.data() as Record<string, unknown>, ownerUid);
 }
 
 export async function saveSharingSettings(
@@ -495,10 +527,11 @@ export async function getEssayWithPermissions(
   }
 
   const essayData = essaySnap.data();
+  const normalizedDoc = normalizeEssayDocument(essayId, essayData as Record<string, unknown>, ownerUid);
 
   if (currentUserUid && currentUserUid === ownerUid) {
     return {
-      essay: { id: essayId, ownerUid, ...essayData } as EssayDocument,
+      essay: normalizedDoc,
       permission: 'owner',
       ownerUid,
     };
@@ -511,7 +544,7 @@ export async function getEssayWithPermissions(
         ?.map((e: string) => e.toLowerCase())
         .includes(normalizedEmail);
       return {
-        essay: { id: essayId, ownerUid, ...essayData } as EssayDocument,
+        essay: normalizedDoc,
         permission: isEditor ? 'editor' : 'viewer',
         ownerUid,
       };
@@ -521,7 +554,7 @@ export async function getEssayWithPermissions(
   if (essayData.sharing?.isPublic) {
     const publicPermission = essayData.sharing.publicPermission || 'viewer';
     return {
-      essay: { id: essayId, ownerUid, ...essayData } as EssayDocument,
+      essay: normalizedDoc,
       permission: publicPermission,
       ownerUid,
     };

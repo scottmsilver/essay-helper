@@ -1,14 +1,9 @@
-import type { Timestamp } from 'firebase/firestore';
+type DateLike = Date | string | number | null | undefined;
 
-type TimestampLike = Timestamp | Date | string | number | null | undefined;
+export function formatRelativeDate(value: DateLike): string {
+  if (!value) return '';
 
-export function formatRelativeDate(timestamp: TimestampLike): string {
-  if (!timestamp) return '';
-
-  const date =
-    timestamp && typeof timestamp === 'object' && 'toDate' in timestamp
-      ? timestamp.toDate()
-      : new Date(timestamp as string | number | Date);
+  const date = value instanceof Date ? value : new Date(value);
 
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();

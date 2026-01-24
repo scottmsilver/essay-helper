@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef, MutableRefObject } from 'react';
-import { Timestamp } from 'firebase/firestore';
 import { useAuth } from './useAuth';
 import { useEssayUpdates, EssayUpdateFunctions } from './useEssayUpdates';
 import { Essay, Claim, createEssay, generateId, getClaimById as modelGetClaimById } from '../models/essay';
+import { serializeEssay } from '../utils/essayEquals';
 import type {
   EssayDocument,
   SharedEssayRef,
@@ -141,25 +141,21 @@ export function useEssay(): UseEssayReturn {
             localEssayRef.current = localData;
             setShowMigrationPrompt(true);
             setEssay(localData);
-            lastSavedEssayRef.current = JSON.stringify(localData);
+            lastSavedEssayRef.current = serializeEssay(localData);
             setLastSavedAt(new Date());
           } else if (userEssays.length > 0) {
             const firstEssay = userEssays[0];
             setCurrentEssayId(firstEssay.id);
             const essayData = firstEssay.data || createEssay();
             setEssay(essayData);
-            lastSavedEssayRef.current = JSON.stringify(essayData);
-            const savedTime =
-              (firstEssay.updatedAt as Timestamp)?.toDate?.() ||
-              (firstEssay.updatedAt as Date) ||
-              new Date();
-            setLastSavedAt(savedTime);
+            lastSavedEssayRef.current = serializeEssay(essayData);
+            setLastSavedAt(firstEssay.updatedAt);
           } else {
             const newId = generateId();
             setCurrentEssayId(newId);
             const newEssay = createEssay();
             setEssay(newEssay);
-            lastSavedEssayRef.current = JSON.stringify(newEssay);
+            lastSavedEssayRef.current = serializeEssay(newEssay);
             setLastSavedAt(null);
           }
         } catch (error) {
@@ -171,7 +167,7 @@ export function useEssay(): UseEssayReturn {
         setCurrentEssayId(null);
         const localData = loadLocalEssay() || createEssay();
         setEssay(localData);
-        lastSavedEssayRef.current = JSON.stringify(localData);
+        lastSavedEssayRef.current = serializeEssay(localData);
       }
 
       setHasUnsavedChanges(false);
@@ -217,7 +213,7 @@ export function useEssay(): UseEssayReturn {
     if (loading || authLoading) return;
 
     const currentEssay = essayRef.current;
-    const currentEssayJson = JSON.stringify(currentEssay);
+    const currentEssayJson = serializeEssay(currentEssay);
 
     if (currentEssayJson === lastSavedEssayRef.current) return;
 
@@ -275,7 +271,7 @@ export function useEssay(): UseEssayReturn {
   useEffect(() => {
     if (loading || authLoading) return;
 
-    const currentEssayJson = JSON.stringify(essay);
+    const currentEssayJson = serializeEssay(essay);
     const hasChanges = currentEssayJson !== lastSavedEssayRef.current;
     setHasUnsavedChanges(hasChanges);
   }, [essay, loading, authLoading]);
@@ -376,17 +372,13 @@ export function useEssay(): UseEssayReturn {
           setCurrentEssayId(essayId);
           const loadedData = essayData.data || createEssay();
           setEssay(loadedData);
-          lastSavedEssayRef.current = JSON.stringify(loadedData);
-          const savedTime =
-            (essayData.updatedAt as Timestamp)?.toDate?.() ||
-            (essayData.updatedAt as Date) ||
-            new Date();
-          setLastSavedAt(savedTime);
+          lastSavedEssayRef.current = serializeEssay(loadedData);
+          setLastSavedAt(essayData.updatedAt);
         } else {
           setCurrentEssayId(essayId);
           const newEssay = createEssay();
           setEssay(newEssay);
-          lastSavedEssayRef.current = JSON.stringify(newEssay);
+          lastSavedEssayRef.current = serializeEssay(newEssay);
           setLastSavedAt(null);
         }
       } catch (error) {
@@ -394,7 +386,7 @@ export function useEssay(): UseEssayReturn {
         setCurrentEssayId(essayId);
         const newEssay = createEssay();
         setEssay(newEssay);
-        lastSavedEssayRef.current = JSON.stringify(newEssay);
+        lastSavedEssayRef.current = serializeEssay(newEssay);
         setLastSavedAt(null);
       }
       setHasUnsavedChanges(false);
@@ -414,12 +406,8 @@ export function useEssay(): UseEssayReturn {
           setCurrentEssayId(essayId);
           const loadedData = essayData.data || createEssay();
           setEssay(loadedData);
-          lastSavedEssayRef.current = JSON.stringify(loadedData);
-          const savedTime =
-            (essayData.updatedAt as Timestamp)?.toDate?.() ||
-            (essayData.updatedAt as Date) ||
-            new Date();
-          setLastSavedAt(savedTime);
+          lastSavedEssayRef.current = serializeEssay(loadedData);
+          setLastSavedAt(essayData.updatedAt);
           setIsSharedEssay(true);
           setSharedEssayOwnerUid(ownerUid);
           setSharedEssayPermission(permission);
@@ -478,7 +466,7 @@ export function useEssay(): UseEssayReturn {
         });
 
         const now = new Date();
-        markSaveComplete(JSON.stringify(currentEssay), now);
+        markSaveComplete(serializeEssay(currentEssay), now);
       } catch (error) {
         console.error('Failed to save sharing settings:', error);
         throw error;
@@ -492,7 +480,7 @@ export function useEssay(): UseEssayReturn {
     const newEssay = createEssay();
     setCurrentEssayId(newId);
     setEssay(newEssay);
-    lastSavedEssayRef.current = JSON.stringify(newEssay);
+    lastSavedEssayRef.current = serializeEssay(newEssay);
     setHasUnsavedChanges(false);
     setIsSharedEssay(false);
     setSharedEssayOwnerUid(null);
@@ -569,7 +557,7 @@ export function useEssay(): UseEssayReturn {
       const newEssay = createEssay();
       setEssay(newEssay);
       saveLocalEssay(newEssay);
-      lastSavedEssayRef.current = JSON.stringify(newEssay);
+      lastSavedEssayRef.current = serializeEssay(newEssay);
       setHasUnsavedChanges(false);
     }
   }, [user, createNewEssay]);
