@@ -13,54 +13,26 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import type { Essay } from '../models/essay';
+import type { EssayStorage } from '../storage/interface';
+import type {
+  Collaborator,
+  SharingInfo,
+  EssayDocument,
+  SharedEssayRef,
+  PermissionLevel,
+  EssayWithPermissions,
+} from '../models/document';
 
-// =============================================================================
-// Types
-// =============================================================================
-
-export interface Collaborator {
-  email: string;
-  permission: 'viewer' | 'editor';
-  addedAt: Date | Timestamp;
-}
-
-export interface SharingInfo {
-  isPublic: boolean;
-  publicToken: string | null;
-  publicPermission?: 'viewer' | 'editor' | null;
-  collaborators: Collaborator[];
-  collaboratorEmails?: string[];
-  editorEmails?: string[];
-}
-
-export interface EssayDocument {
-  id: string;
-  title: string;
-  data: Essay;
-  updatedAt: Timestamp | Date;
-  createdAt?: Timestamp | Date;
-  sharing?: SharingInfo;
-  ownerUid?: string;
-}
-
-export interface SharedEssayRef {
-  id: string;
-  essayId: string;
-  ownerUid: string;
-  ownerEmail: string;
-  ownerDisplayName: string;
-  title: string;
-  permission: 'viewer' | 'editor';
-  sharedAt: Timestamp;
-}
-
-export type Permission = 'owner' | 'editor' | 'viewer';
-
-export interface EssayWithPermissions {
-  essay: EssayDocument | null;
-  permission: Permission | null;
-  ownerUid: string | null;
-}
+// Re-export types for backward compatibility
+export type {
+  Collaborator,
+  SharingInfo,
+  EssayDocument,
+  SharedEssayRef,
+  Permission,
+  PermissionLevel,
+  EssayWithPermissions,
+} from '../models/document';
 
 // =============================================================================
 // Internal Helpers
@@ -194,7 +166,7 @@ export async function shareEssay(
   ownerUid: string,
   essayId: string,
   email: string,
-  permission: 'viewer' | 'editor',
+  permission: PermissionLevel,
   ownerEmail: string,
   ownerDisplayName: string,
   essayTitle: string
@@ -378,7 +350,7 @@ export async function saveSharingSettings(
   essayId: string,
   newCollaborators: Collaborator[],
   isPublic: boolean,
-  publicPermission: 'viewer' | 'editor',
+  publicPermission: PermissionLevel,
   ownerEmail: string,
   ownerDisplayName: string,
   essayTitle: string
@@ -557,3 +529,28 @@ export async function getEssayWithPermissions(
 
   return { essay: null, permission: null, ownerUid: null };
 }
+
+// =============================================================================
+// Storage Interface Implementation
+// =============================================================================
+
+export class FirestoreEssayStorage implements EssayStorage {
+  listEssays = listEssays;
+  getEssay = getEssay;
+  saveEssay = saveEssay;
+  deleteEssay = deleteEssay;
+  updateEssayTitle = updateEssayTitle;
+  getEssaySharingInfo = getEssaySharingInfo;
+  shareEssay = shareEssay;
+  unshareEssay = unshareEssay;
+  setPublicSharing = setPublicSharing;
+  saveSharingSettings = saveSharingSettings;
+  listSharedWithMe = listSharedWithMe;
+  getSharedEssay = getSharedEssay;
+  getPublicEssay = getPublicEssay;
+  saveSharedEssay = saveSharedEssay;
+  savePublicEssay = savePublicEssay;
+  getEssayWithPermissions = getEssayWithPermissions;
+}
+
+export const firestoreStorage: EssayStorage = new FirestoreEssayStorage();

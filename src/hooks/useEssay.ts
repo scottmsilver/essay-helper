@@ -3,6 +3,13 @@ import { Timestamp } from 'firebase/firestore';
 import { useAuth } from './useAuth';
 import { useEssayUpdates, EssayUpdateFunctions } from './useEssayUpdates';
 import { Essay, Claim, createEssay, generateId, getClaimById as modelGetClaimById } from '../models/essay';
+import type {
+  EssayDocument,
+  SharedEssayRef,
+  SharingInfo,
+  Collaborator,
+  Permission,
+} from '../models/document';
 import {
   listEssays,
   getEssay,
@@ -14,11 +21,6 @@ import {
   listSharedWithMe,
   getSharedEssay,
   saveSharedEssay as saveSharedEssayToFirestore,
-  EssayDocument,
-  SharedEssayRef,
-  SharingInfo,
-  Collaborator,
-  Permission,
 } from '../firebase/firestore';
 
 const STORAGE_KEY = 'essay-helper-data';
