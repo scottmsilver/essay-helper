@@ -2,7 +2,7 @@
   "name": "functions",
   "description": "Cloud Functions for Essay Helper",
   "scripts": {
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings=0 .",
+    "lint": "eslint --max-warnings=0 .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "cd .. && npm test -- --run functions/",
@@ -26,8 +26,8 @@
   },
   "devDependencies": {
     "eslint": "^9.39.2",
-    "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.2.0",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "prettier": "^3.8.1",
