@@ -1,6 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
+  match /databases/essays-paid/documents {
     // Helper function to check if user is the owner
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
@@ -55,7 +55,7 @@ service cloud.firestore {
       match /comments/{commentId} {
         // Helper to get the parent essay data
         function getEssay() {
-          return get(/databases/$(database)/documents/users/$(userId)/essays/$(essayId)).data;
+          return get(/databases/essays-paid/documents/users/$(userId)/essays/$(essayId)).data;
         }
 
         // Helper to validate comment author matches authenticated user
@@ -90,20 +90,15 @@ service cloud.firestore {
     }
 
     // Shared with me references - indexed by recipient email (lowercase)
-    // We use email because we don't have the recipient's UID when sharing
     match /sharedWithMe/{recipientEmail}/essays/{docId} {
       // Users can only read their own shared items
       allow read: if request.auth != null &&
                      request.auth.token.email.lower() == recipientEmail;
-      // Essay owners can write to share with others (docId format: ownerUid_essayId)
-      // We allow any authenticated user to write since the owner needs to create these
-      // The security is in the essay document itself - this is just a notification
+      // Essay owners can write to share with others
       allow write: if request.auth != null;
     }
 
     // Public essay lookup - maps token to essay location
-    // Anyone can read to resolve public links
-    // Only the essay owner can create/delete their public essay entries
     match /publicEssays/{publicToken} {
       allow read: if true;
       allow create: if request.auth != null;
@@ -112,8 +107,6 @@ service cloud.firestore {
     }
 
     // Essay index for unified URL lookups - maps essayId to ownerUid
-    // Anyone can read to resolve essay URLs
-    // Only the owner can write their own index entries
     match /essayIndex/{essayId} {
       allow read: if true;
       allow create: if request.auth != null &&

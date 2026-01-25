@@ -8,9 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "vitest run --exclude firestore.rules.test.js",
+    "test:watch": "vitest --exclude firestore.rules.test.js",
+    "test:coverage": "vitest run --coverage --exclude firestore.rules.test.js",
+    "test:rules": "firebase emulators:exec --only firestore 'vitest run firestore.rules.test.js'",
     "prepare": "husky || true"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@firebase/rules-unit-testing": "^5.0.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

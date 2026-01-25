@@ -24,6 +24,13 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['*/firebase/firestore'],
+          importNames: ['EssayDocument', 'SharedEssayRef', 'SharingInfo', 'Collaborator', 'Permission', 'PermissionLevel', 'EssayWithPermissions'],
+          message: 'Import document types from models/document.ts instead of firebase/firestore.ts'
+        }]
+      }],
     },
   },
 ])

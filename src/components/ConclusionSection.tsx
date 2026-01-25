@@ -1,4 +1,5 @@
 import { OutlineCell, ParagraphCell, PurposeCell, SectionLabel } from './Cells';
+import { makeCommentProps, type CommentHelpers } from './Comments';
 import type { Conclusion, Claim } from '../models/essay';
 
 interface ConclusionSectionProps {
@@ -9,60 +10,40 @@ interface ConclusionSectionProps {
   sectionCollapsed: boolean;
   onToggleSection: () => void;
   readOnly?: boolean;
+  commentHelpers?: CommentHelpers;
 }
 
 export function ConclusionSection({
-  conclusion,
-  thesis,
-  claims,
-  updateConclusion,
-  sectionCollapsed,
-  onToggleSection,
-  readOnly = false,
+  conclusion, thesis, claims, updateConclusion,
+  sectionCollapsed, onToggleSection, readOnly = false, commentHelpers,
 }: ConclusionSectionProps) {
-  const rowCount = 2;
-
+  const cp = (blockId: string) => makeCommentProps(commentHelpers, blockId, 'conclusion');
   const thesisText = thesis || '[Thesis]';
   const claimTexts = claims.map((c, i) => c.text || `[Claim ${i + 1}]`);
+  const ClaimRefs = () => <>{claimTexts.map((ct, i) => <span key={i} className="ref">{ct}{i < claimTexts.length - 1 ? ', ' : ''}</span>)}</>;
 
   return (
     <div className={`section section-conclusion ${sectionCollapsed ? 'section-collapsed' : ''}`}>
-      <div className="section-grid" style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
-        <SectionLabel rowSpan={rowCount} onClick={onToggleSection} collapsed={sectionCollapsed}>
-          Conclusion
-        </SectionLabel>
+      <div className="section-grid" style={{ gridTemplateRows: 'repeat(2, auto)' }}>
+        <SectionLabel rowSpan={2} onClick={onToggleSection} collapsed={sectionCollapsed}>Conclusion</SectionLabel>
+
         <PurposeCell label="Restatement">
-          <span className="ref">{thesisText}</span> because{' '}
-          {claimTexts.map((ct, i) => (
-            <span key={i} className="ref">
-              {ct}
-              {i < claimTexts.length - 1 ? ', ' : ''}
-            </span>
-          ))}
+          <span className="ref">{thesisText}</span> because <ClaimRefs />
         </PurposeCell>
         <OutlineCell
           value={conclusion.restatement || ''}
-          onChange={(value) => updateConclusion('restatement', value)}
-          placeholderContent={
-            <>
-              How will you restate <span className="ref">{thesisText}</span> and your claims (
-              {claimTexts.map((ct, i) => (
-                <span key={i}>
-                  <span className="ref">{ct}</span>
-                  {i < claimTexts.length - 1 ? ', ' : ''}
-                </span>
-              ))}
-              ) in your own words?
-            </>
-          }
+          onChange={(v) => updateConclusion('restatement', v)}
+          placeholderContent={<>How will you restate <span className="ref">{thesisText}</span> and your claims (<ClaimRefs />) in your own words?</>}
           readOnly={readOnly}
+          {...cp('conclusion-restatement')}
         />
         <ParagraphCell
-          rowSpan={rowCount}
+          rowSpan={2}
           value={conclusion.paragraph}
-          onChange={(value) => updateConclusion('paragraph', value)}
+          onChange={(v) => updateConclusion('paragraph', v)}
           placeholder={`Write your conclusion restating "${thesis || '[thesis]'}" and explaining why it matters...`}
           readOnly={readOnly}
+          {...cp('conclusion-paragraph')}
         />
 
         <PurposeCell label="So What">
@@ -70,14 +51,10 @@ export function ConclusionSection({
         </PurposeCell>
         <OutlineCell
           value={conclusion.soWhat}
-          onChange={(value) => updateConclusion('soWhat', value)}
-          placeholderContent={
-            <>
-              What are the future implications of <span className="ref">{thesisText}</span> being
-              true?
-            </>
-          }
+          onChange={(v) => updateConclusion('soWhat', v)}
+          placeholderContent={<>What are the future implications of <span className="ref">{thesisText}</span> being true?</>}
           readOnly={readOnly}
+          {...cp('conclusion-soWhat')}
         />
       </div>
     </div>

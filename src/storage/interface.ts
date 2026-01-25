@@ -3,6 +3,7 @@
  */
 
 import type { Essay } from '../models/essay';
+import type { Comment } from '../models/comment';
 import type {
   EssayDocument,
   SharedEssayRef,
@@ -129,4 +130,33 @@ export interface EssayStorage {
     uid: string | null,
     email: string | null
   ): Promise<EssayWithPermissions>;
+
+  // ==========================================================================
+  // Comment Operations
+  // ==========================================================================
+
+  /**
+   * List all comments for an essay
+   */
+  listComments(userId: string, essayId: string): Promise<Comment[]>;
+
+  /**
+   * Add a new comment to an essay
+   */
+  addComment(userId: string, essayId: string, comment: Comment): Promise<Comment>;
+
+  /**
+   * Update the text of an existing comment
+   */
+  updateComment(userId: string, essayId: string, commentId: string, text: string): Promise<void>;
+
+  /**
+   * Delete a comment
+   */
+  deleteComment(userId: string, essayId: string, commentId: string): Promise<void>;
+
+  /**
+   * Resolve or unresolve a comment thread (only affects root comments)
+   */
+  resolveThread(userId: string, essayId: string, rootCommentId: string, resolved: boolean): Promise<void>;
 }

@@ -10,10 +10,13 @@ import {
   CollectionReference,
   DocumentReference,
   Timestamp,
+  onSnapshot,
+  Unsubscribe,
 } from 'firebase/firestore';
 import { nanoid } from 'nanoid';
 import { db } from './config';
 import type { Essay } from '../models/essay';
+import type { Comment, BlockType } from '../models/comment';
 import type { EssayStorage } from '../storage/interface';
 import type {
   Collaborator,
@@ -24,16 +27,7 @@ import type {
   EssayWithPermissions,
 } from '../models/document';
 
-// Re-export types for backward compatibility
-export type {
-  Collaborator,
-  SharingInfo,
-  EssayDocument,
-  SharedEssayRef,
-  Permission,
-  PermissionLevel,
-  EssayWithPermissions,
-} from '../models/document';
+// Types are defined in ../models/document.ts - import from there, not here
 
 // =============================================================================
 // Internal Helpers
@@ -55,6 +49,30 @@ function toDate(ts: Timestamp | Date | undefined | null): Date {
   if (!ts) return new Date();
   if (ts instanceof Date) return ts;
   return ts.toDate();
+}
+
+function getCommentsCollection(userId: string, essayId: string): CollectionReference {
+  return collection(db, 'users', userId, 'essays', essayId, 'comments');
+}
+
+function getCommentDocRef(userId: string, essayId: string, commentId: string): DocumentReference {
+  return doc(db, 'users', userId, 'essays', essayId, 'comments', commentId);
+}
+
+function normalizeComment(id: string, data: Record<string, unknown>): Comment {
+  return {
+    id,
+    blockId: data.blockId as string,
+    blockType: data.blockType as BlockType,
+    authorUid: data.authorUid as string,
+    authorEmail: data.authorEmail as string,
+    authorDisplayName: data.authorDisplayName as string,
+    text: data.text as string,
+    createdAt: toDate(data.createdAt as Timestamp | Date | undefined),
+    updatedAt: toDate(data.updatedAt as Timestamp | Date | undefined),
+    parentCommentId: (data.parentCommentId as string | null) ?? null,
+    resolved: (data.resolved as boolean) ?? false,
+  };
 }
 
 function normalizeEssayDocument(id: string, data: Record<string, unknown>, ownerUid?: string): EssayDocument {
@@ -560,6 +578,102 @@ export async function getEssayWithPermissions(
 }
 
 // =============================================================================
+// Comment CRUD
+// =============================================================================
+
+export async function listComments(userId: string, essayId: string): Promise<Comment[]> {
+  const commentsRef = getCommentsCollection(userId, essayId);
+  const snapshot = await getDocs(commentsRef);
+
+  return snapshot.docs.map((d) =>
+    normalizeComment(d.id, d.data() as Record<string, unknown>)
+  );
+}
+
+export async function addComment(userId: string, essayId: string, comment: Comment): Promise<Comment> {
+  const commentDocRef = getCommentDocRef(userId, essayId, comment.id);
+
+  await setDoc(commentDocRef, {
+    blockId: comment.blockId,
+    blockType: comment.blockType,
+    authorUid: comment.authorUid,
+    authorEmail: comment.authorEmail,
+    authorDisplayName: comment.authorDisplayName,
+    text: comment.text,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    parentCommentId: comment.parentCommentId,
+    resolved: comment.resolved,
+  });
+
+  // Return the comment with the actual server timestamp approximated by the local time
+  return {
+    ...comment,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
+export async function updateComment(
+  userId: string,
+  essayId: string,
+  commentId: string,
+  text: string
+): Promise<void> {
+  const commentDocRef = getCommentDocRef(userId, essayId, commentId);
+
+  await updateDoc(commentDocRef, {
+    text,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteComment(userId: string, essayId: string, commentId: string): Promise<void> {
+  const commentDocRef = getCommentDocRef(userId, essayId, commentId);
+  await deleteDoc(commentDocRef);
+}
+
+export async function resolveThread(
+  userId: string,
+  essayId: string,
+  rootCommentId: string,
+  resolved: boolean
+): Promise<void> {
+  const commentDocRef = getCommentDocRef(userId, essayId, rootCommentId);
+
+  await updateDoc(commentDocRef, {
+    resolved,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Subscribe to real-time comment updates for an essay
+ */
+export function subscribeToComments(
+  userId: string,
+  essayId: string,
+  onCommentsChange: (comments: Comment[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  const commentsRef = getCommentsCollection(userId, essayId);
+
+  return onSnapshot(
+    commentsRef,
+    (snapshot) => {
+      const comments = snapshot.docs.map((d) =>
+        normalizeComment(d.id, d.data() as Record<string, unknown>)
+      );
+      onCommentsChange(comments);
+    },
+    (error) => {
+      console.error('Error subscribing to comments:', error);
+      onError?.(error);
+    }
+  );
+}
+
+// =============================================================================
 // Storage Interface Implementation
 // =============================================================================
 
@@ -580,6 +694,11 @@ export class FirestoreEssayStorage implements EssayStorage {
   saveSharedEssay = saveSharedEssay;
   savePublicEssay = savePublicEssay;
   getEssayWithPermissions = getEssayWithPermissions;
+  listComments = listComments;
+  addComment = addComment;
+  updateComment = updateComment;
+  deleteComment = deleteComment;
+  resolveThread = resolveThread;
 }
 
 export const firestoreStorage: EssayStorage = new FirestoreEssayStorage();

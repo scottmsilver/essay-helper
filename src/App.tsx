@@ -9,7 +9,11 @@ import { IntroSection, BodySection, ConclusionSection, ShareDialog } from './com
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { MigrationPrompt } from './components/MigrationPrompt';
-import { getEssayWithPermissions, savePublicEssay, EssayDocument, SharingInfo, Permission, SharedEssayRef } from './firebase/firestore';
+import { CommentPanel, toCommentThreadData, CommentThreadData } from './components/Comments';
+import { useComments } from './hooks/useComments';
+import { getEssayWithPermissions, savePublicEssay } from './firebase/firestore';
+import type { EssayDocument, SharingInfo, Permission, SharedEssayRef } from './models/document';
+import type { BlockType, CommentThread } from './models/comment';
 import './App.css';
 
 const COLLAPSED_STORAGE_KEY = 'essay-helper-collapsed-sections';
@@ -145,6 +149,7 @@ interface EssayEditorProps {
   loadSharingInfo: () => Promise<void>;
   saveSharing: (params: { collaborators: SharingInfo['collaborators']; isPublic: boolean; publicPermission: 'viewer' | 'editor' }) => Promise<void>;
   readOnly?: boolean;
+  ownerUid?: string | null;
 }
 
 function EssayEditor({
@@ -169,12 +174,81 @@ function EssayEditor({
   loadSharingInfo,
   saveSharing,
   readOnly = false,
+  ownerUid,
 }: EssayEditorProps) {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [collapsedState, setCollapsedState] = useState<CollapsedState>(loadCollapsedState);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [sharingLoading, setSharingLoading] = useState(false);
+
+  // Comments state
+  const [activeBlock, setActiveBlock] = useState<{ id: string; type: BlockType } | null>(null);
+  const [showCommentPanel, setShowCommentPanel] = useState(false);
+  const [quotedText, setQuotedText] = useState<string | null>(null);
+
+  const {
+    commentsByBlock,
+    addComment,
+    editComment,
+    deleteComment,
+    resolveThread,
+  } = useComments({ essayId: currentEssayId, ownerUid });
+
+  // Helper to get comment stats for a block
+  const getBlockStats = useCallback((blockId: string) => {
+    const threads = commentsByBlock.get(blockId) || [];
+    const count = threads.reduce((sum: number, t: CommentThread) => sum + 1 + t.replies.length, 0);
+    const hasUnresolved = threads.some((t: CommentThread) => !t.rootComment.resolved);
+    return { count, hasUnresolved };
+  }, [commentsByBlock]);
+
+  // Helper to convert all threads to UI format
+  const getAllThreads = useCallback((): CommentThreadData[] => {
+    const allThreads: CommentThreadData[] = [];
+    commentsByBlock.forEach((threads: CommentThread[], blockId: string) => {
+      threads.forEach((thread: CommentThread) => {
+        allThreads.push(toCommentThreadData(thread, blockId, thread.rootComment.blockType));
+      });
+    });
+    return allThreads.sort((a, b) =>
+      b.rootComment.createdAt.getTime() - a.rootComment.createdAt.getTime()
+    );
+  }, [commentsByBlock]);
+
+  const handleCommentClick = useCallback((blockId: string, blockType: BlockType, selectedText?: string) => {
+    setActiveBlock({ id: blockId, type: blockType });
+    setQuotedText(selectedText || null);
+    setShowCommentPanel(true);
+  }, []);
+
+  const handleAddComment = useCallback(async (blockId: string, blockType: string, text: string, parentId?: string) => {
+    await addComment(blockId, blockType as BlockType, text, parentId);
+  }, [addComment]);
+
+  const handleCloseCommentPanel = useCallback(() => {
+    setShowCommentPanel(false);
+    setQuotedText(null);
+  }, []);
+
+  const handleOpenCommentPanel = useCallback(() => {
+    setActiveBlock(null); // Show all comments, not filtered by block
+    setQuotedText(null);
+    setShowCommentPanel(true);
+  }, []);
+
+  // Total comment count for the badge
+  const totalCommentCount = getAllThreads().reduce(
+    (sum, thread) => sum + 1 + thread.replies.length,
+    0
+  );
+
+  // Comment helpers for section components
+  const commentHelpers = {
+    getBlockStats,
+    onCommentClick: handleCommentClick,
+  };
 
   useEffect(() => {
     if (!currentEssayId || isSharedEssay || !loadSharingInfo) return;
@@ -235,6 +309,8 @@ function EssayEditor({
         onGoHome={() => navigate('/')}
         showEditor={true}
         onShareClick={readOnly ? null : () => setShowShareDialog(true)}
+        onCommentsClick={handleOpenCommentPanel}
+        commentCount={totalCommentCount}
         isSharedEssay={isSharedEssay}
         readOnly={readOnly}
       />
@@ -249,6 +325,22 @@ function EssayEditor({
           essayId={currentEssayId}
         />
       )}
+
+      <CommentPanel
+        isOpen={showCommentPanel}
+        onClose={handleCloseCommentPanel}
+        threads={getAllThreads()}
+        activeBlockId={activeBlock?.id ?? null}
+        activeBlockType={activeBlock?.type ?? null}
+        quotedText={quotedText}
+        onClearQuote={() => setQuotedText(null)}
+        currentUserId={user?.uid ?? ''}
+        essayOwnerId={ownerUid ?? user?.uid ?? ''}
+        onAddComment={handleAddComment}
+        onEditComment={editComment}
+        onDeleteComment={deleteComment}
+        onResolveThread={resolveThread}
+      />
 
       <main
         className={[
@@ -287,6 +379,7 @@ function EssayEditor({
           sectionCollapsed={isSectionCollapsed('intro')}
           onToggleSection={() => toggleCollapse('intro', true)}
           readOnly={readOnly}
+          commentHelpers={commentHelpers}
         />
 
         {essay.bodyParagraphs.map((bodyParagraph, index) => (
@@ -303,6 +396,7 @@ function EssayEditor({
             sectionCollapsed={isSectionCollapsed(`body-${index}`)}
             onToggleSection={() => toggleCollapse(`body-${index}`, true)}
             readOnly={readOnly}
+            commentHelpers={commentHelpers}
           />
         ))}
 
@@ -314,6 +408,7 @@ function EssayEditor({
           sectionCollapsed={isSectionCollapsed('conclusion')}
           onToggleSection={() => toggleCollapse('conclusion', true)}
           readOnly={readOnly}
+          commentHelpers={commentHelpers}
         />
       </main>
     </>
@@ -491,6 +586,7 @@ function UnifiedEssayRoute({
       isSharedEssay={isSharedEssay}
       loadSharingInfo={loadSharingInfo}
       saveSharing={saveSharing}
+      ownerUid={null}
     />
   );
 }

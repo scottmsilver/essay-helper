@@ -2,6 +2,7 @@ import { useState, ReactNode } from 'react';
 import { OutlineCell, ParagraphCell, PurposeCell, SectionLabel } from './Cells';
 import { AddRemoveActions } from './AddRemoveActions';
 import { ConfirmDialog } from './ConfirmDialog';
+import { makeCommentProps, type CommentHelpers, type CommentProps } from './Comments';
 import type { BodyParagraph, Claim, ProofBlock } from '../models/essay';
 
 interface BodySectionProps {
@@ -16,6 +17,7 @@ interface BodySectionProps {
   sectionCollapsed: boolean;
   onToggleSection: () => void;
   readOnly?: boolean;
+  commentHelpers?: CommentHelpers;
 }
 
 interface DeleteConfirm {
@@ -35,11 +37,13 @@ export function BodySection({
   sectionCollapsed,
   onToggleSection,
   readOnly = false,
+  commentHelpers,
 }: BodySectionProps) {
   const [confirmDelete, setConfirmDelete] = useState<DeleteConfirm | null>(null);
   const rowCount = 2 + bodyParagraph.proofBlocks.length * 4;
   const claimText = claim?.text || `[Claim ${bodyIndex + 1}]`;
   const thesisText = thesis || '[Thesis]';
+  const cp = (blockId: string) => makeCommentProps(commentHelpers, blockId, 'bodyParagraph');
 
   const getProofSummary = (proofBlock: ProofBlock, index: number): string => {
     const connection = proofBlock.connection?.trim();
@@ -85,6 +89,7 @@ export function BodySection({
             </>
           }
           readOnly={readOnly}
+          {...cp(`${bodyParagraph.id}-purpose`)}
         />
         <ParagraphCell
           rowSpan={rowCount}
@@ -92,6 +97,7 @@ export function BodySection({
           onChange={(value) => updateBodyParagraph(bodyParagraph.id, 'paragraph', value)}
           placeholder={`Write your body paragraph proving "${claimText}", weaving together your evidence, analysis, and connection...`}
           readOnly={readOnly}
+          {...cp(`${bodyParagraph.id}-paragraph`)}
         />
 
         {bodyParagraph.proofBlocks.map((proofBlock, pbIndex) => (
@@ -107,6 +113,7 @@ export function BodySection({
             removeProofBlock={handleRemoveProofBlock}
             addProofBlock={addProofBlock}
             readOnly={readOnly}
+            commentHelpers={commentHelpers}
           />
         ))}
 
@@ -139,6 +146,7 @@ export function BodySection({
             </>
           }
           readOnly={readOnly}
+          {...cp(`${bodyParagraph.id}-recap`)}
         />
       </div>
 
@@ -164,6 +172,7 @@ interface ProofBlockRowsProps {
   removeProofBlock: (bodyId: string, proofBlockId: string) => void;
   addProofBlock: (bodyId: string) => void;
   readOnly?: boolean;
+  commentHelpers?: CommentHelpers;
 }
 
 function ProofBlockRows({
@@ -177,8 +186,10 @@ function ProofBlockRows({
   removeProofBlock,
   addProofBlock,
   readOnly = false,
+  commentHelpers,
 }: ProofBlockRowsProps) {
   const depthClass = `proof-depth-${Math.min(pbIndex, 4)}`;
+  const cp = (blockId: string) => makeCommentProps(commentHelpers, blockId, 'proofBlock');
 
   return (
     <>
@@ -211,6 +222,7 @@ function ProofBlockRows({
         }
         className={depthClass}
         readOnly={readOnly}
+        {...cp(`${proofBlock.id}-quote`)}
       />
 
       <PurposeCell label="Analysis" className={depthClass}>
@@ -222,6 +234,7 @@ function ProofBlockRows({
         placeholder="What does this evidence show? Explain its significance."
         className={depthClass}
         readOnly={readOnly}
+        {...cp(`${proofBlock.id}-analysis`)}
       />
 
       <PurposeCell label="Connection" className={`${depthClass} proof-last-row`}>
@@ -237,6 +250,7 @@ function ProofBlockRows({
         }
         className={`${depthClass} proof-last-row`}
         readOnly={readOnly}
+        {...cp(`${proofBlock.id}-connection`)}
       />
     </>
   );

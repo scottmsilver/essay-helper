@@ -1,6 +1,6 @@
 import { MouseEvent } from 'react';
 import { formatRelativeDate } from '../utils/formatDate';
-import type { EssayDocument, SharedEssayRef, Permission } from '../firebase/firestore';
+import type { EssayDocument, SharedEssayRef, Permission } from '../models/document';
 
 interface HomePageProps {
   essays: EssayDocument[];

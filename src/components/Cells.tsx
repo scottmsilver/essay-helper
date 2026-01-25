@@ -1,5 +1,6 @@
 import { useRef, useEffect, ReactNode, ChangeEvent, RefObject } from 'react';
 import { CopyButton } from './CopyButton';
+import { CommentIndicator, type CommentProps } from './Comments';
 
 function useAutoResize(value: string, _placeholder?: string, disabled = false): RefObject<HTMLTextAreaElement | null> {
   const ref = useRef<HTMLTextAreaElement | null>(null);
@@ -71,7 +72,14 @@ export function PurposeCell({ label, children, className = '', actions }: Purpos
   );
 }
 
-interface OutlineCellProps {
+function getSelectedText(ref: RefObject<HTMLTextAreaElement | null>): string | undefined {
+  const textarea = ref.current;
+  if (!textarea) return undefined;
+  const { selectionStart, selectionEnd } = textarea;
+  return selectionStart !== selectionEnd ? textarea.value.substring(selectionStart, selectionEnd) : undefined;
+}
+
+interface OutlineCellProps extends CommentProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -87,6 +95,9 @@ export function OutlineCell({
   placeholderContent,
   className = '',
   readOnly = false,
+  commentCount,
+  hasUnresolvedComments,
+  onCommentClick,
 }: OutlineCellProps) {
   const textareaRef = useAutoResize(value, placeholder);
   const hasContent = value && value.length > 0;
@@ -105,11 +116,19 @@ export function OutlineCell({
         readOnly={readOnly}
       />
       {placeholderContent && <div className="outline-placeholder">{placeholderContent}</div>}
+      {onCommentClick && (
+        <CommentIndicator
+          count={commentCount ?? 0}
+          hasUnresolved={hasUnresolvedComments ?? false}
+          onClick={() => onCommentClick(getSelectedText(textareaRef))}
+          className="cell-comment-indicator"
+        />
+      )}
     </div>
   );
 }
 
-interface ParagraphCellProps {
+interface ParagraphCellProps extends CommentProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -123,6 +142,9 @@ export function ParagraphCell({
   placeholder,
   rowSpan,
   readOnly = false,
+  commentCount,
+  hasUnresolvedComments,
+  onCommentClick,
 }: ParagraphCellProps) {
   const textareaRef = useAutoResize(value, placeholder);
   const hasContent = value && value.trim().length > 0;
@@ -138,6 +160,14 @@ export function ParagraphCell({
         readOnly={readOnly}
       />
       {hasContent && <CopyButton text={value} />}
+      {onCommentClick && (
+        <CommentIndicator
+          count={commentCount ?? 0}
+          hasUnresolved={hasUnresolvedComments ?? false}
+          onClick={() => onCommentClick(getSelectedText(textareaRef))}
+          className="cell-comment-indicator"
+        />
+      )}
     </div>
   );
 }

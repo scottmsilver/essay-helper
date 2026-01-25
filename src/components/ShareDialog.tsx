@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent, ChangeEvent, MouseEvent } from 'react';
 import { useClipboard } from '../hooks/useClipboard';
-import type { SharingInfo, Collaborator } from '../firebase/firestore';
+import type { SharingInfo, Collaborator } from '../models/document';
 
 interface SaveSharingParams {
   collaborators: Collaborator[];
