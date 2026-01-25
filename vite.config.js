@@ -8,5 +8,21 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.js',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      exclude: [
+        'node_modules/**',
+        'functions/node_modules/**',
+        'dist/**',
+        '**/*.test.{ts,tsx,js}',
+        '**/*.d.ts',
+        'src/test/**',
+      ],
+      thresholds: {
+        lines: 30,
+        branches: 30,
+      },
+    },
   },
 })

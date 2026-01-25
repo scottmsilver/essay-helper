@@ -36,9 +36,25 @@ export default [
   {
     files: ["**/*.test.js", "**/*.spec.js"],
     languageOptions: {
+      sourceType: "module",
       globals: {
-        ...globals.jest,
+        ...globals.node,
+        ...globals.es2020,
+        // Vitest globals
+        describe: "readonly",
+        it: "readonly",
+        expect: "readonly",
+        vi: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        test: "readonly",
       },
+    },
+    rules: {
+      strict: "off",
+      quotes: "off",
     },
   },
 ];

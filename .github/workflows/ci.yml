@@ -34,9 +34,8 @@ jobs:
     - name: Check formatting
       working-directory: functions
       run: npm run format:check
-    - name: Run tests
-      working-directory: functions
-      run: npm test
+    - name: Run tests with coverage
+      run: npm run test:coverage
     - name: Security audit
       working-directory: functions
       run: npm audit --audit-level=moderate
@@ -58,3 +57,19 @@ jobs:
     - name: Run type check
       working-directory: functions
       run: npm run typecheck
+  build:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: functions/.nvmrc
+        cache: npm
+        cache-dependency-path: package-lock.json
+    - name: Install dependencies
+      run: npm ci
+    - name: Build frontend
+      run: npm run build
