@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, MutableRefObject } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
 import { useAuth } from './useAuth';
 import { useEssayUpdates, EssayUpdateFunctions } from './useEssayUpdates';
 import { Essay, Claim, createEssay, generateId, getClaimById as modelGetClaimById } from '../models/essay';
@@ -102,7 +103,6 @@ export function useEssay(): UseEssayReturn {
   const [sharedEssayOwnerUid, setSharedEssayOwnerUid] = useState<string | null>(null);
   const [sharedEssayPermission, setSharedEssayPermission] = useState<Permission | null>(null);
 
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const localEssayRef = useRef<Essay | null>(null);
   const lastSavedEssayRef = useRef<string | null>(null);
@@ -276,21 +276,12 @@ export function useEssay(): UseEssayReturn {
     setHasUnsavedChanges(hasChanges);
   }, [essay, loading, authLoading]);
 
+  const debouncedSave = useDebouncedCallback(performSave, 2000);
+
   useEffect(() => {
     if (loading || authLoading) return;
-
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(performSave, 2000);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [essay, loading, authLoading, performSave]);
+    debouncedSave();
+  }, [essay, loading, authLoading, debouncedSave]);
 
   useEffect(() => {
     if (loading || authLoading) return;

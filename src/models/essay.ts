@@ -1,6 +1,7 @@
 /**
  * Pure essay data model - no React or UI dependencies
  */
+import { nanoid } from 'nanoid';
 
 // =============================================================================
 // Types
@@ -51,8 +52,7 @@ export interface Essay {
 // Factory Functions
 // =============================================================================
 
-export const generateId = (): string =>
-  Math.random().toString(36).substring(2, 9);
+export const generateId = (): string => nanoid(7);
 
 export const createProofBlock = (): ProofBlock => ({
   id: generateId(),

@@ -11,6 +11,7 @@ import {
   DocumentReference,
   Timestamp,
 } from 'firebase/firestore';
+import { nanoid } from 'nanoid';
 import { db } from './config';
 import type { Essay } from '../models/essay';
 import type { EssayStorage } from '../storage/interface';
@@ -47,12 +48,7 @@ function getEssayDocRef(userId: string, essayId: string): DocumentReference {
 }
 
 function generatePublicToken(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let token = '';
-  for (let i = 0; i < 8; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
+  return nanoid(8);
 }
 
 function toDate(ts: Timestamp | Date | undefined | null): Date {

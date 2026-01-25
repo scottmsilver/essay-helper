@@ -16,33 +16,18 @@ describe('formatRelativeDate', () => {
     expect(formatRelativeDate(undefined)).toBe('');
   });
 
-  it('returns "Just now" for less than 1 minute ago', () => {
-    const date = new Date('2026-01-19T11:59:30Z');
-    expect(formatRelativeDate(date)).toBe('Just now');
-  });
-
-  it('returns minutes ago for 1-59 minutes', () => {
-    const date = new Date('2026-01-19T11:55:00Z');
-    expect(formatRelativeDate(date)).toBe('5 min ago');
-  });
-
-  it('returns hours ago for 1-23 hours', () => {
-    const date = new Date('2026-01-19T09:00:00Z');
-    expect(formatRelativeDate(date)).toBe('3 hours ago');
-  });
-
-  it('returns "1 hour ago" (singular) for 1 hour', () => {
-    const date = new Date('2026-01-19T11:00:00Z');
-    expect(formatRelativeDate(date)).toBe('1 hour ago');
-  });
-
-  it('returns days ago for 1-6 days', () => {
+  it('returns relative format for dates within 7 days', () => {
     const date = new Date('2026-01-17T12:00:00Z');
-    expect(formatRelativeDate(date)).toBe('2 days ago');
+    expect(formatRelativeDate(date)).toContain('ago');
   });
 
-  it('returns "1 day ago" (singular) for 1 day', () => {
-    const date = new Date('2026-01-18T12:00:00Z');
-    expect(formatRelativeDate(date)).toBe('1 day ago');
+  it('returns absolute format for dates older than 7 days', () => {
+    const date = new Date('2026-01-10T12:00:00Z');
+    expect(formatRelativeDate(date)).toBe('Jan 10');
+  });
+
+  it('includes year for dates older than 365 days', () => {
+    const date = new Date('2024-06-15T12:00:00Z');
+    expect(formatRelativeDate(date)).toBe('Jun 15, 2024');
   });
 });

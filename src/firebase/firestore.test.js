@@ -6,7 +6,6 @@ import {
   saveSharingSettings,
   getPublicEssay,
   listSharedWithMe,
-  getEssaySharingInfo,
 } from './__mocks__/firestore';
 
 describe('Sharing functionality', () => {
