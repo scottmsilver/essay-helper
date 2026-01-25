@@ -4,6 +4,7 @@
 [post-create]
 env = "cp {{ base_worktree_path }}/.env.local .env.local 2>/dev/null || true"
 install = "npm install --ignore-scripts && npx husky || true"
+install-functions = "cd functions && npm install --ignore-scripts"
 
 # Start the Vite dev server in the background after switching
 [post-start]
