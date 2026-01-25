@@ -15,7 +15,7 @@ describe("XSS prevention via escapeHtml", () => {
   it("escapes script tags in user-provided values", () => {
     const malicious = '<script>alert("xss")</script>';
     const escaped = escapeHtml(malicious);
-    expect(escaped).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+    expect(escaped).toBe("&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;");
     expect(escaped).not.toContain("<script>");
   });
 
@@ -26,17 +26,17 @@ describe("XSS prevention via escapeHtml", () => {
   });
 
   it("escapes mixed HTML and script content", () => {
-    const escaped = escapeHtml('Title<script>evil()</script>');
+    const escaped = escapeHtml("Title<script>evil()</script>");
     expect(escaped).toBe("Title&lt;script&gt;evil()&lt;/script&gt;");
   });
 
   it("escapes anchor tags with javascript protocol", () => {
     const escaped = escapeHtml('<a href="javascript:alert(1)">click</a>');
-    expect(escaped).toBe('&lt;a href=&quot;javascript:alert(1)&quot;&gt;click&lt;/a&gt;');
+    expect(escaped).toBe("&lt;a href=&quot;javascript:alert(1)&quot;&gt;click&lt;/a&gt;");
   });
 
   it("handles nested HTML entities", () => {
-    const escaped = escapeHtml('<<script>>');
+    const escaped = escapeHtml("<<script>>");
     expect(escaped).toBe("&lt;&lt;script&gt;&gt;");
   });
 });
