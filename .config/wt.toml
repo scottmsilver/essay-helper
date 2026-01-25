@@ -8,3 +8,7 @@ install = "npm install --ignore-scripts && npx husky || true"
 # Start the Vite dev server in the background after switching
 [post-start]
 dev-server = "npm run dev"
+
+# Push to remote after merging
+[post-merge]
+push = "git push"
