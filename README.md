@@ -72,18 +72,45 @@ npm run deploy       # Deploy to Firebase
 ```
 essay-helper/
 ├── src/
-│   ├── models/           # Pure data types and transformations
-│   │   ├── essay.ts      # Essay structure (Intro, BodyParagraph, Conclusion)
-│   │   └── document.ts   # Persistence wrapper types
-│   ├── storage/          # Abstract storage interface
-│   ├── firebase/         # Firestore implementation + Auth
-│   ├── hooks/            # React state management
-│   ├── components/       # UI components
-│   └── App.tsx           # Router and main layout
-├── functions/            # Firebase Cloud Functions
-│   └── index.js          # Email notification on share
-├── .github/workflows/    # CI/CD (lint, test, deploy)
-└── fly.toml              # Fly.io deployment config
+│   ├── models/                # Pure data types and transformations
+│   │   ├── essay.ts           # Essay structure (Intro, BodyParagraph, Conclusion)
+│   │   └── document.ts        # Persistence wrapper types (EssayDocument, SharingInfo)
+│   ├── storage/
+│   │   └── interface.ts       # Abstract EssayStorage contract
+│   ├── firebase/
+│   │   ├── config.ts          # Firebase initialization
+│   │   ├── auth.ts            # Authentication helpers
+│   │   └── firestore.ts       # Firestore CRUD + sharing implementation
+│   ├── hooks/
+│   │   ├── useAuth.ts         # Auth state hook
+│   │   ├── useEssay.ts        # Main essay state management
+│   │   ├── useEssayUpdates.ts # Essay field update handlers
+│   │   └── useClipboard.ts    # Clipboard copy utility
+│   ├── contexts/
+│   │   └── AuthContext.tsx    # Auth provider
+│   ├── components/
+│   │   ├── HomePage.tsx       # Essay list + sharing dashboard
+│   │   ├── Header.tsx         # App header with user menu
+│   │   ├── IntroSection.tsx   # Introduction editor
+│   │   ├── BodySection.tsx    # Body paragraph editor
+│   │   ├── ConclusionSection.tsx
+│   │   ├── ShareDialog.tsx    # Sharing modal
+│   │   └── ...                # Other UI components
+│   ├── utils/
+│   │   ├── essayEquals.ts     # Change detection
+│   │   └── formatDate.ts      # Date formatting
+│   ├── App.tsx                # Router and essay editor layout
+│   └── main.tsx               # Entry point
+├── functions/                 # Firebase Cloud Functions
+│   ├── index.js               # Email notification on share
+│   ├── utils.js               # Shared utilities
+│   └── eslint.config.mjs      # ESLint flat config
+├── .github/workflows/
+│   ├── ci.yml                 # Lint, test, typecheck
+│   └── fly-deploy.yml         # Deploy to Fly.io on push to main
+├── fly.toml                   # Fly.io config
+├── firebase.json              # Firebase config
+└── firestore.rules            # Firestore security rules
 ```
 
 ## Architecture
